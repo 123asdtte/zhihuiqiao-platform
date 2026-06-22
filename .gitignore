@@ -1,0 +1,33 @@
+# 后端 Java / Maven 构建产物
+zhihuiqiao-backend/target/
+*.class
+*.jar
+*.war
+*.ear
+
+# 前端 Node.js 依赖与构建产物
+zhihuiqiao-frontend/node_modules/
+zhihuiqiao-frontend/dist/
+
+# 编辑器与系统文件
+.vscode/
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# 日志文件
+*.log
+logs/
+
+# 本地环境配置（避免泄露敏感信息）
+.env
+.env.local
+.env.*.local
+
+# 临时文件
+*.tmp
+*.temp
