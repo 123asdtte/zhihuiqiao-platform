@@ -31,3 +31,7 @@ logs/
 # 临时文件
 *.tmp
 *.temp
+
+# 错误日志与工具目录
+*.err
+.sisyphus/

@@ -48,3 +48,61 @@ INSERT INTO idle_resource (resource_name, resource_type, owner_id, description, 
 ('《人工智能：一种现代的方法》第4版', '图书资料', 2, '经典AI教材，9成新，适合人工智能入门学习。', 'https://example.com/book.jpg', '图书馆三楼', 128.00, 0.00, 'available', '借阅周期不超过30天，到期可申请续借', 12),
 ('便携式投影仪', '电子数码', 3, '小米便携式投影仪，适合小组讨论和项目答辩使用。', 'https://example.com/projector.jpg', '行政楼C102', 2999.00, 20.00, 'available', '借用不超过7天，需押学生证', 26),
 ('小型会议室（可容纳8人）', '场地空间', 2, '配备白板、投影仪、视频会议设备，适合小组讨论。', 'https://example.com/room.jpg', '创新楼D401', 0.00, 0.00, 'available', '需提前2天预约，单次使用不超过4小时', 41);
+
+-- ==================== 知识点模拟数据（算法：拓扑排序学习路径） ====================
+
+-- 大数据分析课程知识点（ID 1~12）
+INSERT INTO knowledge_point (id, course_name, point_name, description, content, difficulty, prerequisite_ids, estimated_minutes, sort_order, status) VALUES
+(1, '大数据分析', '数据科学导论', '了解数据科学的基本概念、发展历程和应用领域', '数据科学定义、数据科学工作流程、常见应用场景', 1, NULL, 30, 1, 1),
+(2, '大数据分析', '统计学基础', '掌握描述性统计和推断性统计的基本方法', '均值、中位数、方差、标准差、假设检验、置信区间', 1, NULL, 45, 2, 1),
+(3, '大数据分析', 'Linux系统基础', '熟悉Linux操作系统的基本操作和命令', '文件系统、Shell命令、权限管理、环境配置', 1, NULL, 40, 3, 1),
+(4, '大数据分析', 'Python编程基础', '掌握Python编程语言的基本语法和数据结构', '变量与类型、列表/字典/集合、函数与类、文件操作', 2, '1', 60, 4, 1),
+(5, '大数据分析', '数据采集', '学习从Web、API和数据库中采集数据的方法', '爬虫基础、API调用、数据库连接、数据导出', 2, '4', 50, 5, 1),
+(6, '大数据分析', '数据预处理', '掌握数据清洗、缺失值处理、数据变换等预处理技术', '缺失值处理、异常值检测、标准化/归一化、特征编码', 2, '2,4', 50, 6, 1),
+(7, '大数据分析', '数据存储与管理', '了解大数据存储技术，包括HDFS、NoSQL数据库等', 'HDFS原理、HBase、MongoDB、数据仓库概念', 3, '3', 45, 7, 1),
+(8, '大数据分析', '数据可视化', '学习使用Matplotlib、Seaborn等工具进行数据可视化', '图表类型选择、Matplotlib基础、Seaborn统计图、交互式可视化', 3, '6,4', 40, 8, 1),
+(9, '大数据分析', '数据分析与建模', '掌握使用Pandas和Scikit-learn进行数据分析建模', 'Pandas数据分析、特征工程、回归/分类模型、模型评估', 3, '6,2', 60, 9, 1),
+(10, '大数据分析', '机器学习入门', '了解机器学习的基本概念和经典算法', '监督学习、无监督学习、过拟合与欠拟合、交叉验证', 4, '9,4', 55, 10, 1),
+(11, '大数据分析', '大数据平台技术', '学习Hadoop、Spark等大数据处理平台的使用', 'Hadoop生态、MapReduce、Spark RDD/DataFrame、流处理', 4, '7,3', 60, 11, 1),
+(12, '大数据分析', '深度学习基础', '了解神经网络和深度学习的基本原理', '感知机、多层神经网络、反向传播、CNN/RNN简介', 5, '10', 50, 12, 1)
+ON DUPLICATE KEY UPDATE course_name = VALUES(course_name), point_name = VALUES(point_name);
+
+-- 人工智能课程知识点（ID 13~23）
+INSERT INTO knowledge_point (id, course_name, point_name, description, content, difficulty, prerequisite_ids, estimated_minutes, sort_order, status) VALUES
+(13, '人工智能', '编程基础(Python)', '掌握Python编程语言的基本语法、数据结构与面向对象编程', '变量与类型、列表/字典/集合、函数、类与继承、异常处理', 1, NULL, 60, 1, 1),
+(14, '人工智能', '高等数学基础', '复习高等数学的核心概念：极限、导数、积分与级数', '极限与连续、导数与微分、不定积分与定积分、泰勒级数', 1, NULL, 50, 2, 1),
+(15, '人工智能', '概率论与数理统计', '掌握概率论基础与常用统计方法', '概率公理、随机变量、分布函数、大数定律、中心极限定理', 1, NULL, 50, 3, 1),
+(16, '人工智能', '线性代数', '掌握矩阵运算、向量空间、特征值分解等线性代数核心', '矩阵运算、行列式、向量空间、特征值与特征向量、SVD分解', 2, '14', 60, 4, 1),
+(17, '人工智能', '数据结构与算法', '学习常用数据结构和基本算法思想', '数组/链表/树/图、排序与搜索、动态规划、复杂度分析', 2, '13,14', 60, 5, 1),
+(18, '人工智能', '机器学习基础', '系统学习经典机器学习算法的原理与实现', '线性回归、逻辑回归、决策树、SVM、聚类、集成学习', 3, '15,16,13', 70, 6, 1),
+(19, '人工智能', '数据库与数据挖掘', '学习数据库操作与数据挖掘的常用技术', 'SQL语言、数据仓库、关联规则、聚类分析、异常检测', 3, '17', 50, 7, 1),
+(20, '人工智能', '深度学习', '深入学习神经网络与深度学习技术', '多层感知机、CNN、RNN/LSTM、注意力机制、Transformer', 4, '18,16', 70, 8, 1),
+(21, '人工智能', '自然语言处理', '学习文本处理与自然语言理解的核心技术', '分词/词性标注、词向量、Seq2Seq、BERT/GPT、文本分类', 4, '20,17', 60, 9, 1),
+(22, '人工智能', '计算机视觉', '学习图像处理与计算机视觉的核心算法', '图像滤波、边缘检测、目标检测、图像分割、GAN', 5, '20,16', 60, 10, 1),
+(23, '人工智能', '强化学习', '了解强化学习的基本原理与经典算法', 'MDP、价值迭代/策略迭代、Q-Learning、DQN、策略梯度', 5, '18,15', 55, 11, 1)
+ON DUPLICATE KEY UPDATE course_name = VALUES(course_name), point_name = VALUES(point_name);
+
+-- ==================== 学习资源模拟数据 ====================
+
+INSERT INTO learning_resource (id, resource_name, resource_type, subject, description, content_url, difficulty_level, publisher_id, status, views, likes) VALUES
+(1, 'Python数据科学手册', 'book', '大数据分析', 'Python在数据科学领域的经典入门教材，涵盖NumPy/Pandas/Matplotlib', 'https://example.com/books/python-data-science', '初级', 3, 1, 256, 42),
+(2, '大数据技术原理与应用', 'course', '大数据分析', '系统讲解Hadoop、Spark等大数据处理技术', 'https://example.com/courses/bigdata-tech', '中级', 3, 1, 189, 35),
+(3, '机器学习实战（基于Scikit-learn）', 'video', '人工智能', '从零开始学习机器学习算法和Scikit-learn框架', 'https://example.com/videos/ml-sklearn', '中级', 2, 1, 312, 58),
+(4, '深度学习入门：基于PyTorch', 'video', '人工智能', 'PyTorch框架入门到实践，涵盖CNN/RNN/Transformer', 'https://example.com/videos/deeplearning-pytorch', '高级', 2, 1, 278, 49),
+(5, '概率论与数理统计（第5版）', 'book', '人工智能', '经典概率论教材，系统讲解概率分布、统计推断等内容', 'https://example.com/books/probability', '初级', 3, 1, 145, 28)
+ON DUPLICATE KEY UPDATE resource_name = VALUES(resource_name), subject = VALUES(subject);
+
+-- ==================== 学习记录模拟数据 ====================
+
+-- student01（user_id=2）已完成大数据分析前6个知识点中的4个
+INSERT INTO learning_record (user_id, resource_id, progress, status, last_position, complete_time) VALUES
+(2, 1, 100, 'completed', 350, '2026-06-10 14:30:00'),
+(2, 2, 60, 'learning', 180, NULL)
+ON DUPLICATE KEY UPDATE progress = VALUES(progress), status = VALUES(status);
+
+-- ==================== 项目申请模拟数据 ====================
+
+INSERT INTO project_application (project_id, applicant_id, apply_reason, status, handle_time, reply_message) VALUES
+(1, 2, '我对深度学习和推荐系统很感兴趣，希望能参与这个项目积累经验', 'approved', '2026-06-15 10:00:00', '欢迎加入团队，请于本周五参加项目启动会'),
+(2, 2, '我有Java和Vue开发经验，可以承担平台核心功能开发工作', 'pending', NULL, NULL)
+ON DUPLICATE KEY UPDATE status = VALUES(status);

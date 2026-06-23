@@ -2,6 +2,7 @@ package com.zhihuiqiao.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.zhihuiqiao.algorithm.recommendation.ProjectRecommendService;
 import com.zhihuiqiao.common.Result;
 import com.zhihuiqiao.entity.*;
 import com.zhihuiqiao.service.*;
@@ -21,7 +22,7 @@ import java.util.List;
  */
 @Tag(name = "科研撮合模块", description = "科研项目、企业需求、项目申请相关接口")
 @RestController
-@RequestMapping("/api/research")
+@RequestMapping("/research")
 @RequiredArgsConstructor
 public class ResearchController {
 
@@ -30,6 +31,7 @@ public class ResearchController {
     private final ProjectApplicationService projectApplicationService;
     private final EnterpriseDemandService enterpriseDemandService;
     private final SysUserService sysUserService;
+    private final ProjectRecommendService projectRecommendService;
 
     // ==================== 科研画像 ====================
 
@@ -249,5 +251,23 @@ public class ResearchController {
             enterpriseDemandService.updateById(demand);
         }
         return Result.success(demand);
+    }
+
+    // ==================== 智能推荐（TF-IDF + 余弦相似度） ====================
+
+    @Operation(summary = "【算法】为学生推荐最匹配的科研项目（基于 TF-IDF + Cosine Similarity）")
+    @GetMapping("/project/recommend")
+    public Result<List<ProjectRecommendService.RecommendedProject>> recommendProjects(
+            @RequestParam Long userId,
+            @RequestParam(defaultValue = "6") Integer topN) {
+        return Result.success(projectRecommendService.recommendProjectsForStudent(userId, topN));
+    }
+
+    @Operation(summary = "【算法】为教师推荐匹配的企业需求（基于科研能力画像）")
+    @GetMapping("/demand/recommend")
+    public Result<List<ProjectRecommendService.RecommendedDemand>> recommendDemands(
+            @RequestParam Long userId,
+            @RequestParam(defaultValue = "6") Integer topN) {
+        return Result.success(projectRecommendService.recommendDemandsForResearcher(userId, topN));
     }
 }

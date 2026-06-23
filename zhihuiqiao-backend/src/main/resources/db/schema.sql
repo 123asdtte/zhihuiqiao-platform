@@ -96,8 +96,8 @@ CREATE TABLE IF NOT EXISTS research_project (
     PRIMARY KEY (id),
     KEY idx_publisher (publisher_id),
     KEY idx_status (status),
-    FULLTEXT KEY ft_name_desc (project_name, project_description) WITH PARSER ngram
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='科研项目表';
+    FULLTEXT KEY ft_name_desc (project_name, project_description)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='科研项目表';
 
 -- 项目申请表
 CREATE TABLE IF NOT EXISTS project_application (
@@ -135,8 +135,8 @@ CREATE TABLE IF NOT EXISTS enterprise_demand (
     deleted TINYINT DEFAULT 0,
     PRIMARY KEY (id),
     KEY idx_enterprise (enterprise_id),
-    FULLTEXT KEY ft_title_desc (demand_title, demand_description) WITH PARSER ngram
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='企业需求表';
+    FULLTEXT KEY ft_title_desc (demand_title, demand_description)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='企业需求表';
 
 -- 闲置资源表
 CREATE TABLE IF NOT EXISTS idle_resource (
@@ -231,3 +231,23 @@ CREATE TABLE IF NOT EXISTS learning_record (
     UNIQUE KEY uk_user_resource (user_id, resource_id),
     KEY idx_user (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='学习记录表';
+
+-- 知识点表（用于学习路径规划算法）
+CREATE TABLE IF NOT EXISTS knowledge_point (
+    id BIGINT NOT NULL AUTO_INCREMENT COMMENT '知识点ID',
+    course_name VARCHAR(200) NOT NULL COMMENT '所属课程名称',
+    point_name VARCHAR(200) NOT NULL COMMENT '知识点名称',
+    description TEXT COMMENT '知识点描述',
+    content TEXT COMMENT '知识点内容',
+    difficulty INT DEFAULT 1 COMMENT '难度等级：1-5',
+    prerequisite_ids TEXT COMMENT '前置知识点ID列表，多个用逗号分隔，如"1,3,5"',
+    estimated_minutes INT DEFAULT 30 COMMENT '预计学习时长（分钟）',
+    status TINYINT DEFAULT 1 COMMENT '状态：0-下架 1-上架',
+    sort_order INT DEFAULT 0 COMMENT '排序号',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    deleted TINYINT DEFAULT 0 COMMENT '逻辑删除',
+    PRIMARY KEY (id),
+    KEY idx_course (course_name(100)),
+    KEY idx_difficulty (difficulty)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='知识点表（算法：拓扑排序学习路径）';
