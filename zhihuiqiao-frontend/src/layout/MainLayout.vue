@@ -26,6 +26,10 @@
           </template>
           <el-menu-item index="/app/research/projects">科研项目</el-menu-item>
           <el-menu-item index="/app/research/demands">企业需求</el-menu-item>
+          <el-menu-item v-if="userStore.isStudent" index="/app/research/applications">我的申请</el-menu-item>
+          <el-menu-item v-if="userStore.isStudent || userStore.isTeacher" index="/app/research/profile">科研画像</el-menu-item>
+          <el-menu-item v-if="userStore.isTeacher || userStore.isEnterprise || userStore.isAdmin" index="/app/research/project/publish">发布科研项目</el-menu-item>
+          <el-menu-item v-if="userStore.isEnterprise || userStore.isAdmin" index="/app/research/demand/publish">发布企业需求</el-menu-item>
         </el-sub-menu>
 
         <el-sub-menu index="resource">
@@ -34,6 +38,8 @@
             <span>资源流转</span>
           </template>
           <el-menu-item index="/app/resource/list">资源列表</el-menu-item>
+          <el-menu-item index="/app/resource/bookings">我的预约</el-menu-item>
+          <el-menu-item index="/app/resource/publish">发布闲置资源</el-menu-item>
         </el-sub-menu>
 
         <el-sub-menu index="learning">
@@ -42,7 +48,8 @@
             <span>教学辅助</span>
           </template>
           <el-menu-item index="/app/learning/resources">学习资源</el-menu-item>
-          <el-menu-item v-if="userStore.isStudent" index="/app/learning/center">学习中心</el-menu-item>
+          <el-menu-item v-if="userStore.isStudent || userStore.isAdmin" index="/app/learning/center">学习中心</el-menu-item>
+          <el-menu-item v-if="userStore.isTeacher || userStore.isAdmin" index="/app/learning/publish">发布学习资源</el-menu-item>
         </el-sub-menu>
 
         <template v-if="userStore.isAdmin">
@@ -54,6 +61,7 @@
             <el-menu-item index="/app/admin/users">用户管理</el-menu-item>
             <el-menu-item index="/app/admin/audit">内容审核</el-menu-item>
             <el-menu-item index="/app/admin/dashboard">数据看板</el-menu-item>
+            <el-menu-item index="/app/admin/operation-logs">操作日志</el-menu-item>
           </el-sub-menu>
         </template>
       </el-menu>
@@ -68,6 +76,13 @@
           </el-icon>
         </div>
         <div class="header-right">
+          <!-- 消息通知入口 -->
+          <el-badge :value="unreadCount" :hidden="unreadCount === 0" class="notification-badge">
+            <el-icon class="notification-icon" @click="goToNotifications">
+              <Bell />
+            </el-icon>
+          </el-badge>
+
           <el-dropdown trigger="click" @command="handleCommand">
             <div class="user-info">
               <el-avatar :size="32" :src="userStore.userInfo?.avatar">
@@ -94,10 +109,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAppStore } from '@/stores/app'
 import { useUserStore } from '@/stores/user'
+import { useNotificationStore } from '@/stores/notification'
 import {
   HomeFilled,
   Search,
@@ -106,15 +122,27 @@ import {
   Setting,
   Fold,
   Expand,
-  ArrowDown
+  ArrowDown,
+  Bell
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
 const appStore = useAppStore()
 const userStore = useUserStore()
+const notificationStore = useNotificationStore()
 
 const currentRoute = computed(() => route.path)
+
+// 使用全局 Store 中的未读数量，支持 WebSocket 实时更新
+const unreadCount = computed(() => notificationStore.unreadCount)
+
+/**
+ * 跳转到通知中心
+ */
+function goToNotifications() {
+  router.push('/app/notifications')
+}
 
 function handleCommand(command: string) {
   if (command === 'profile') {
@@ -124,6 +152,11 @@ function handleCommand(command: string) {
     router.push('/login')
   }
 }
+
+onMounted(() => {
+  // 页面加载时获取一次未读数量，后续由 WebSocket 实时推送更新
+  notificationStore.fetchUnreadCount()
+})
 </script>
 
 <style scoped lang="scss">
@@ -186,6 +219,24 @@ function handleCommand(command: string) {
   }
 
   .header-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+
+    .notification-badge {
+      cursor: pointer;
+
+      .notification-icon {
+        font-size: 20px;
+        color: #606266;
+        transition: color 0.2s;
+
+        &:hover {
+          color: #409eff;
+        }
+      }
+    }
+
     .user-info {
       display: flex;
       align-items: center;

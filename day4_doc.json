@@ -1,0 +1,11 @@
+{
+  "ok": true,
+  "identity": "user",
+  "data": {
+    "document": {
+      "content": "<title>6月18日项目开发日志</title>\n\n# 「智汇桥」——AI驱动的产学研用一体化智慧协同系统\n\n\n\n## 开发日志文档（Day 4）\n\n\n\n\n\n### 一、项目基本信息\n\n\n\n| 项目名称 | 智汇桥——AI驱动的产学研用一体化智慧协同系统 |\n|-|-|\n| 项目定位 | 连接教师、学生、实验室与校企资源，打造师-生-机协同的智慧校园中心 |\n| 核心模块 | 科研项目智能撮合、校园闲置资源流转、教学辅助个性化支持 |\n| 技术路线 | Spring Boot 3 + Vue 3 + MySQL 8.0 + Redis |\n| 开发周期 | 2026年6月—9月 |\n| 文档日期 | 2026年6月18日 |\n\n\n\n\n\n### 二、今日工作内容\n\n\n\n#### 2.1 后端开发环境搭建\n\n\n\n- 完成Spring Boot项目初始化，配置JDK 17\n- 编写application.yml配置文件，配置MySQL数据源、Redis连接、MyBatis-Plus参数\n- 配置Druid连接池，设置初始连接数、最大连接数、超时时间等参数\n- 验证数据库连接成功，测试CRUD基础操作\n\n#### 2.2 数据库初始化\n\n\n\n- 执行12张核心表的建表SQL脚本，所有表创建成功\n- 初始化基础数据：角色表预置四种角色（学生/教师/企业/管理员）\n- 创建管理员测试账号，用于后续功能验证\n\n#### 2.3 用户模块代码编写\n\n\n\n完成用户模块的基础开发：\n\n\n\n- **实体类**：User、Role、UserRole，配置MyBatis-Plus注解（@TableName、@TableId、@TableField）\n- **Mapper层**：编写UserMapper、RoleMapper、UserRoleMapper，继承MyBatis-Plus BaseMapper\n- **Service层**：编写UserService及实现类，实现注册、登录、信息查询、信息更新等方法\n- **Controller层**：编写UserController，暴露注册、登录、获取用户信息、更新用户信息、修改密码五个接口\n- **密码加密**：集成BCryptPasswordEncoder，实现密码加密存储\n\n#### 2.4 JWT认证实现\n\n\n\n- 编写JwtUtil工具类，实现Token生成、解析、验证功能\n- 编写JwtAuthenticationFilter过滤器，拦截请求并验证Token有效性\n- 配置SecurityConfig，放行登录注册接口，其他接口需认证访问\n- 编写统一响应结果类（Result），规范API返回格式（code/message/data）\n- 编写全局异常处理器，统一处理业务异常与参数校验异常\n\n#### 2.5 接口调试\n\n\n\n- 使用Postman测试用户注册接口，数据正常写入数据库\n- 测试用户登录接口，成功返回Token\n- 测试携带Token访问用户信息接口，正常返回用户数据\n- 验证Token过期、无效Token等异常场景，返回正确的错误提示\n\n### 三、待解决问题\n\n\n\n1. 跨域配置待添加，后续前端联调时需配置CORS\n2. 登录接口是否需要增加验证码功能，待团队讨论\n\n### 四、明日工作计划（2026年6月19日）\n\n\n\n| 序号 | 工作内容 | 预计产出 |\n|-|-|-|\n| 1 | 编写科研撮合模块实体类与Mapper | 数据访问层代码完成 |\n| 2 | 编写科研项目发布、列表查询、申请加入接口 | 科研模块核心接口完成 |\n| 3 | 前端登录注册页面开发 | 登录注册页面完成 |\n| 4 | 前后端登录注册联调 | 登录注册功能跑通 |\n\n\n\n\n\n### 五、备注\n\n\n\n- 今日正式进入编码开发阶段，用户模块已全部完成\n- 后端接口通过Postman验证通过，具备前后端联调条件\n- 明日将推进科研撮合模块开发与前端页面实现\n\n**记录人**：罗智峰，杨博文\n\n**日期**：2026年6月18日",
+      "document_id": "El2YdO7VnoixXTxviuFc0qt5n8b",
+      "revision_id": 11
+    }
+  }
+}

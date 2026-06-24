@@ -1,8 +1,10 @@
 package com.zhihuiqiao.controller;
 
+import com.zhihuiqiao.annotation.OperationLogAnnotation;
 import com.zhihuiqiao.common.Result;
 import com.zhihuiqiao.dto.LoginRequest;
 import com.zhihuiqiao.dto.RegisterRequest;
+import com.zhihuiqiao.entity.SysUser;
 import com.zhihuiqiao.security.JwtUtil;
 import com.zhihuiqiao.service.SysUserService;
 import com.zhihuiqiao.vo.LoginVO;
@@ -29,6 +31,7 @@ public class AuthController {
         return Result.success(sysUserService.login(request));
     }
 
+    @OperationLogAnnotation(module = "认证管理", operation = "用户注册")
     @PostMapping("/register")
     public Result<Void> register(@Valid @RequestBody RegisterRequest request) {
         sysUserService.register(request);
@@ -40,6 +43,22 @@ public class AuthController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Long userId = (Long) authentication.getCredentials();
         return Result.success(sysUserService.getCurrentUserInfo(userId));
+    }
+
+    /**
+     * 更新当前登录用户信息
+     */
+    @OperationLogAnnotation(module = "个人中心", operation = "更新个人资料")
+    @PutMapping("/profile")
+    public Result<Boolean> updateCurrentUserInfo(@RequestBody SysUser user) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Long userId = (Long) authentication.getCredentials();
+        user.setId(userId);
+        // 不允许通过个人信息接口修改关键字段
+        user.setPassword(null);
+        user.setUsername(null);
+        user.setRoleType(null);
+        return Result.success(sysUserService.updateById(user));
     }
 
     @PostMapping("/refresh")

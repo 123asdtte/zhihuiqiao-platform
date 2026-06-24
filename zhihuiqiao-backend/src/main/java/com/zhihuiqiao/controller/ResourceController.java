@@ -2,17 +2,21 @@ package com.zhihuiqiao.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.zhihuiqiao.annotation.OperationLogAnnotation;
 import com.zhihuiqiao.common.Result;
 import com.zhihuiqiao.entity.IdleResource;
 import com.zhihuiqiao.entity.ResourceBooking;
 import com.zhihuiqiao.entity.ResourceTransferLog;
 import com.zhihuiqiao.service.IdleResourceService;
+import com.zhihuiqiao.service.NotificationService;
 import com.zhihuiqiao.service.ResourceBookingService;
 import com.zhihuiqiao.service.ResourceTransferLogService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,12 +36,19 @@ public class ResourceController {
     private final IdleResourceService idleResourceService;
     private final ResourceBookingService resourceBookingService;
     private final ResourceTransferLogService resourceTransferLogService;
+    private final NotificationService notificationService;
 
     // ==================== 闲置资源 ====================
 
+    @OperationLogAnnotation(module = "资源流转", operation = "发布闲置资源")
     @Operation(summary = "发布闲置资源")
     @PostMapping("/publish")
     public Result<Long> publishResource(@RequestBody @Valid IdleResource resource) {
+        // 从 SecurityContext 获取当前登录用户 ID，设置为资源所有者
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getCredentials() instanceof Long userId) {
+            resource.setOwnerId(userId);
+        }
         resource.setStatus("available");
         resource.setViews(0);
         idleResourceService.save(resource);
@@ -115,6 +126,19 @@ public class ResourceController {
 
         booking.setStatus("pending");
         resourceBookingService.save(booking);
+
+        // 发送通知给资源所有者
+        if (resource != null) {
+            notificationService.sendNotification(
+                    resource.getOwnerId(),
+                    "新的资源预约申请",
+                    "您的资源「" + resource.getResourceName() + "」收到了新的预约申请，请及时处理。",
+                    "booking",
+                    booking.getId(),
+                    "resource_booking"
+            );
+        }
+
         return Result.success(booking.getId());
     }
 
@@ -133,9 +157,18 @@ public class ResourceController {
         LambdaQueryWrapper<ResourceBooking> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ResourceBooking::getBorrowerId, borrowerId)
                 .orderByDesc(ResourceBooking::getCreateTime);
-        return Result.success(resourceBookingService.list(wrapper));
+        List<ResourceBooking> bookings = resourceBookingService.list(wrapper);
+        // 填充资源名称，便于前端展示
+        bookings.forEach(booking -> {
+            IdleResource resource = idleResourceService.getById(booking.getResourceId());
+            if (resource != null) {
+                booking.setResourceName(resource.getResourceName());
+            }
+        });
+        return Result.success(bookings);
     }
 
+    @OperationLogAnnotation(module = "资源流转", operation = "审批资源预约")
     @Operation(summary = "审批资源预约")
     @PutMapping("/booking/{id}/audit")
     public Result<Boolean> auditBooking(@PathVariable Long id,
@@ -151,27 +184,40 @@ public class ResourceController {
         boolean result = resourceBookingService.updateById(booking);
 
         // 审批通过时，记录流转日志并更新资源状态
-        if ("approved".equals(status)) {
-            IdleResource resource = idleResourceService.getById(booking.getResourceId());
-            if (resource != null) {
-                resource.setStatus("rented");
-                idleResourceService.updateById(resource);
+        IdleResource resource = idleResourceService.getById(booking.getResourceId());
+        if ("approved".equals(status) && resource != null) {
+            resource.setStatus("rented");
+            idleResourceService.updateById(resource);
 
-                ResourceTransferLog log = new ResourceTransferLog();
-                log.setResourceId(booking.getResourceId());
-                log.setBookingId(booking.getId());
-                log.setFromUserId(resource.getOwnerId());
-                log.setToUserId(booking.getBorrowerId());
-                log.setTransferType("borrow");
-                log.setRemark("预约审批通过，资源借出");
-                log.setCreateTime(LocalDateTime.now());
-                resourceTransferLogService.save(log);
-            }
+            ResourceTransferLog log = new ResourceTransferLog();
+            log.setResourceId(booking.getResourceId());
+            log.setBookingId(booking.getId());
+            log.setFromUserId(resource.getOwnerId());
+            log.setToUserId(booking.getBorrowerId());
+            log.setTransferType("borrow");
+            log.setRemark("预约审批通过，资源借出");
+            log.setCreateTime(LocalDateTime.now());
+            resourceTransferLogService.save(log);
+        }
+
+        // 发送审核结果通知给借用人
+        if (resource != null) {
+            String auditResult = "approved".equals(status) ? "已通过" : "未通过";
+            notificationService.sendNotification(
+                    booking.getBorrowerId(),
+                    "资源预约" + auditResult,
+                    "您对资源「" + resource.getResourceName() + "」的预约申请" + auditResult +
+                            (StringUtils.hasText(replyMessage) ? "，回复：" + replyMessage : "。"),
+                    "booking",
+                    booking.getId(),
+                    "resource_booking"
+            );
         }
 
         return Result.success(result);
     }
 
+    @OperationLogAnnotation(module = "资源流转", operation = "归还资源")
     @Operation(summary = "归还资源")
     @PutMapping("/booking/{id}/return")
     public Result<Boolean> returnResource(@PathVariable Long id) {

@@ -52,6 +52,15 @@ public class JwtUtil {
             return false;
         } catch (UnsupportedJwtException | MalformedJwtException | SecurityException | IllegalArgumentException e) {
             return false;
+        } catch (io.jsonwebtoken.security.SignatureException e) {
+            // 密钥变更或 Token 签名不匹配，视为无效 Token
+            return false;
+        } catch (io.jsonwebtoken.security.WeakKeyException e) {
+            // 密钥长度不足导致校验失败，视为无效 Token
+            return false;
+        } catch (JwtException e) {
+            // 捕获其他所有 JWT 相关异常
+            return false;
         }
     }
 

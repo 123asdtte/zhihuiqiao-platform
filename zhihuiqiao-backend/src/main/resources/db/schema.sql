@@ -231,3 +231,45 @@ CREATE TABLE IF NOT EXISTS learning_record (
     UNIQUE KEY uk_user_resource (user_id, resource_id),
     KEY idx_user (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='学习记录表';
+
+-- 消息通知表
+CREATE TABLE IF NOT EXISTS sys_notification (
+    id BIGINT NOT NULL AUTO_INCREMENT COMMENT '通知ID',
+    user_id BIGINT NOT NULL COMMENT '接收用户ID',
+    title VARCHAR(200) NOT NULL COMMENT '通知标题',
+    content TEXT COMMENT '通知内容',
+    type VARCHAR(50) DEFAULT 'system' COMMENT '通知类型：system/project/application/resource/booking/learning',
+    is_read TINYINT DEFAULT 0 COMMENT '是否已读：0-未读 1-已读',
+    related_id BIGINT DEFAULT NULL COMMENT '关联业务ID',
+    related_type VARCHAR(50) DEFAULT NULL COMMENT '关联业务类型',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted TINYINT DEFAULT 0,
+    PRIMARY KEY (id),
+    KEY idx_user_read (user_id, is_read),
+    KEY idx_create_time (create_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='消息通知表';
+
+-- 操作日志表
+CREATE TABLE IF NOT EXISTS operation_log (
+    id BIGINT NOT NULL AUTO_INCREMENT COMMENT '日志ID',
+    user_id BIGINT DEFAULT NULL COMMENT '操作用户ID',
+    username VARCHAR(100) DEFAULT NULL COMMENT '操作用户名',
+    role_type VARCHAR(50) DEFAULT NULL COMMENT '操作用户角色',
+    module VARCHAR(100) NOT NULL COMMENT '操作模块',
+    operation VARCHAR(200) NOT NULL COMMENT '操作描述',
+    method VARCHAR(20) DEFAULT NULL COMMENT '请求方法 GET/POST/PUT/DELETE',
+    request_url VARCHAR(500) DEFAULT NULL COMMENT '请求URL',
+    request_params TEXT COMMENT '请求参数',
+    response_code INT DEFAULT NULL COMMENT '响应状态码',
+    ip_address VARCHAR(100) DEFAULT NULL COMMENT '操作IP地址',
+    user_agent VARCHAR(500) DEFAULT NULL COMMENT '浏览器UA',
+    execution_time INT DEFAULT 0 COMMENT '执行耗时(毫秒)',
+    status TINYINT DEFAULT 1 COMMENT '操作状态：0-失败 1-成功',
+    error_msg TEXT COMMENT '错误信息',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_user_id (user_id),
+    KEY idx_module (module),
+    KEY idx_create_time (create_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='操作日志表';

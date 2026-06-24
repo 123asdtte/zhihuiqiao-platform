@@ -30,21 +30,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         String token = extractToken(request);
 
-        if (StringUtils.hasText(token) && jwtUtil.validateToken(token)) {
-            Long userId = jwtUtil.getUserIdFromToken(token);
-            String username = jwtUtil.getUsernameFromToken(token);
-            String roleType = jwtUtil.getRoleTypeFromToken(token);
+        try {
+            if (StringUtils.hasText(token) && jwtUtil.validateToken(token)) {
+                Long userId = jwtUtil.getUserIdFromToken(token);
+                String username = jwtUtil.getUsernameFromToken(token);
+                String roleType = jwtUtil.getRoleTypeFromToken(token);
 
-            UserDetails userDetails = User.builder()
-                    .username(username)
-                    .password("")
-                    .authorities("ROLE_" + roleType.toUpperCase())
-                    .build();
+                UserDetails userDetails = User.builder()
+                        .username(username)
+                        .password("")
+                        .authorities("ROLE_" + roleType.toUpperCase())
+                        .build();
 
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(userDetails, userId, userDetails.getAuthorities());
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(userDetails, userId, userDetails.getAuthorities());
 
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            }
+        } catch (Exception e) {
+            // Token 解析异常时继续放行，由后续授权规则决定是否允许访问
+            // 这样可以避免旧 Token 或非法 Token 影响 /auth/** 等白名单接口
         }
 
         filterChain.doFilter(request, response);

@@ -39,3 +39,15 @@ export function getCurrentUser() {
     method: 'get'
   })
 }
+
+/**
+ * 更新当前登录用户信息
+ * @param data 用户信息
+ */
+export function updateCurrentUser(data: Record<string, any>) {
+  return request({
+    url: '/auth/profile',
+    method: 'put',
+    data
+  })
+}

@@ -17,7 +17,8 @@ export function getResourceList(params: {
   status?: string
 }) {
   return request({
-    url: '/resource/list',
+    // 后端 ResourceController 前缀为 /api/resource
+    url: '/api/resource/list',
     method: 'get',
     params
   })
@@ -29,7 +30,7 @@ export function getResourceList(params: {
  */
 export function getResourceDetail(id: number | string) {
   return request({
-    url: `/resource/${id}`,
+    url: `/api/resource/${id}`,
     method: 'get'
   })
 }
@@ -46,7 +47,7 @@ export function submitBooking(data: {
   purpose: string
 }) {
   return request({
-    url: '/resource/booking',
+    url: '/api/resource/booking',
     method: 'post',
     data
   })
@@ -58,7 +59,7 @@ export function submitBooking(data: {
  */
 export function getResourceBookings(resourceId: number | string) {
   return request({
-    url: `/resource/${resourceId}/bookings`,
+    url: `/api/resource/${resourceId}/bookings`,
     method: 'get'
   })
 }
@@ -69,7 +70,7 @@ export function getResourceBookings(resourceId: number | string) {
  */
 export function getMyBookings(borrowerId: number) {
   return request({
-    url: '/resource/booking/my',
+    url: '/api/resource/booking/my',
     method: 'get',
     params: { borrowerId }
   })
@@ -83,7 +84,7 @@ export function getMyBookings(borrowerId: number) {
  */
 export function auditBooking(id: number, status: string, replyMessage?: string) {
   return request({
-    url: `/resource/booking/${id}/audit`,
+    url: `/api/resource/booking/${id}/audit`,
     method: 'put',
     params: { status, replyMessage }
   })
@@ -95,7 +96,7 @@ export function auditBooking(id: number, status: string, replyMessage?: string) 
  */
 export function returnResource(id: number) {
   return request({
-    url: `/resource/booking/${id}/return`,
+    url: `/api/resource/booking/${id}/return`,
     method: 'put'
   })
 }
@@ -106,7 +107,7 @@ export function returnResource(id: number) {
  */
 export function publishResource(data: Record<string, any>) {
   return request({
-    url: '/resource/publish',
+    url: '/api/resource/publish',
     method: 'post',
     data
   })

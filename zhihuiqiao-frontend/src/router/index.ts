@@ -53,6 +53,30 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '企业需求列表', roles: ['student', 'teacher', 'enterprise', 'admin'] }
       },
       {
+        path: 'research/applications',
+        name: 'MyApplications',
+        component: () => import('@/views/research/MyApplications.vue'),
+        meta: { title: '我的申请', roles: ['student'] }
+      },
+      {
+        path: 'research/project/publish',
+        name: 'ProjectPublish',
+        component: () => import('@/views/research/ProjectPublish.vue'),
+        meta: { title: '发布科研项目', roles: ['teacher', 'enterprise', 'admin'] }
+      },
+      {
+        path: 'research/demand/publish',
+        name: 'DemandPublish',
+        component: () => import('@/views/research/DemandPublish.vue'),
+        meta: { title: '发布企业需求', roles: ['enterprise', 'admin'] }
+      },
+      {
+        path: 'research/profile',
+        name: 'ResearcherProfile',
+        component: () => import('@/views/research/ResearcherProfile.vue'),
+        meta: { title: '科研画像', roles: ['student', 'teacher'] }
+      },
+      {
         path: 'resource/list',
         name: 'ResourceList',
         component: () => import('@/views/resource/ResourceList.vue'),
@@ -63,6 +87,18 @@ const routes: RouteRecordRaw[] = [
         name: 'ResourceDetail',
         component: () => import('@/views/resource/ResourceDetail.vue'),
         meta: { title: '资源详情', roles: ['student', 'teacher', 'admin'] }
+      },
+      {
+        path: 'resource/publish',
+        name: 'ResourcePublish',
+        component: () => import('@/views/resource/ResourcePublish.vue'),
+        meta: { title: '发布闲置资源', roles: ['student', 'teacher', 'admin'] }
+      },
+      {
+        path: 'resource/bookings',
+        name: 'MyBookings',
+        component: () => import('@/views/resource/MyBookings.vue'),
+        meta: { title: '我的预约', roles: ['student', 'teacher', 'admin'] }
       },
       {
         path: 'learning/resources',
@@ -77,10 +113,28 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '学习中心', roles: ['student', 'admin'] }
       },
       {
+        path: 'learning/detail/:id',
+        name: 'LearningResourceDetail',
+        component: () => import('@/views/learning/ResourceDetail.vue'),
+        meta: { title: '学习资源详情', roles: ['student', 'teacher', 'admin'] }
+      },
+      {
+        path: 'learning/publish',
+        name: 'LearningResourcePublish',
+        component: () => import('@/views/learning/ResourcePublish.vue'),
+        meta: { title: '发布学习资源', roles: ['teacher', 'admin'] }
+      },
+      {
         path: 'user/profile',
         name: 'UserProfile',
         component: () => import('@/views/user/ProfileView.vue'),
         meta: { title: '个人中心' }
+      },
+      {
+        path: 'notifications',
+        name: 'NotificationCenter',
+        component: () => import('@/views/notification/NotificationCenter.vue'),
+        meta: { title: '消息通知' }
       },
       {
         path: 'admin/users',
@@ -99,6 +153,12 @@ const routes: RouteRecordRaw[] = [
         name: 'AdminDashboard',
         component: () => import('@/views/admin/Dashboard.vue'),
         meta: { title: '数据看板', roles: ['admin'] }
+      },
+      {
+        path: 'admin/operation-logs',
+        name: 'OperationLog',
+        component: () => import('@/views/admin/OperationLog.vue'),
+        meta: { title: '操作日志', roles: ['admin'] }
       }
     ]
   },
@@ -114,27 +174,27 @@ const router = createRouter({
   routes
 })
 
-router.beforeEach((to, _from, next) => {
+router.beforeEach((to) => {
   const userStore = useUserStore()
   document.title = `${to.meta.title || '智汇桥'} - 智汇桥`
 
+  // 无需认证的页面直接放行
   if (to.meta.requiresAuth === false) {
-    next()
-    return
+    return true
   }
 
+  // 未登录用户重定向到登录页
   if (!userStore.isLoggedIn) {
-    next({ path: '/login', query: { redirect: to.fullPath } })
-    return
+    return { path: '/login', query: { redirect: to.fullPath } }
   }
 
+  // 校验角色权限
   const requiredRoles = to.meta.roles as string[] | undefined
   if (requiredRoles && userStore.roleType && !requiredRoles.includes(userStore.roleType)) {
-    next({ path: '/app/home' })
-    return
+    return { path: '/app/home' }
   }
 
-  next()
+  return true
 })
 
 export default router

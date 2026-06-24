@@ -32,6 +32,7 @@
             placeholder="搜索资源名称/描述"
             clearable
             style="width: 240px"
+            @input="handleKeywordInput"
             @keyup.enter="handleSearch"
           />
         </el-form-item>
@@ -43,13 +44,14 @@
     </el-card>
 
     <!-- 资源列表 -->
-    <el-row :gutter="20" class="resource-list">
+    <el-row v-loading="loading" :gutter="20" class="resource-list">
       <el-col v-for="item in resourceList" :key="item.id" :xs="24" :sm="12" :md="8" :lg="6">
         <el-card class="resource-card" shadow="hover" @click="goToDetail(item.id)">
           <div class="resource-image">
             <el-image
               :src="item.images ? item.images.split(',')[0] : defaultImage"
               fit="cover"
+              lazy
               style="width: 100%; height: 160px"
             >
               <template #error>
@@ -109,6 +111,7 @@
 import { reactive, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { debounce } from '@/utils/debounce'
 import { Picture, Location, View } from '@element-plus/icons-vue'
 import { getResourceList } from '@/api/resource'
 
@@ -170,6 +173,13 @@ async function loadResourceList() {
     loading.value = false
   }
 }
+
+/**
+ * 关键词输入防抖搜索，减少频繁请求
+ */
+const handleKeywordInput = debounce(() => {
+  handleSearch()
+}, 400)
 
 /**
  * 搜索

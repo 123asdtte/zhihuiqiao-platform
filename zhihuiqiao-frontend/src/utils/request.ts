@@ -5,7 +5,10 @@ import { useUserStore } from '@/stores/user'
 import router from '@/router'
 
 const service: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  // 基础 URL 由环境变量控制，默认为 '/'。
+  // 各 API 模块需在 url 中显式写出完整前缀（如 /api/resource/list、/auth/login），
+  // 以便 Vite 代理按前缀区分转发到后端不同 Controller。
+  baseURL: import.meta.env.VITE_API_BASE_URL || '',
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json'

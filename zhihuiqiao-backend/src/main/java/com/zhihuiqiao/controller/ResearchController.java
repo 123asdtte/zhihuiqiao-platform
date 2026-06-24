@@ -2,6 +2,7 @@ package com.zhihuiqiao.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.zhihuiqiao.annotation.OperationLogAnnotation;
 import com.zhihuiqiao.common.Result;
 import com.zhihuiqiao.entity.*;
 import com.zhihuiqiao.service.*;
@@ -9,6 +10,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,6 +33,7 @@ public class ResearchController {
     private final ProjectApplicationService projectApplicationService;
     private final EnterpriseDemandService enterpriseDemandService;
     private final SysUserService sysUserService;
+    private final NotificationService notificationService;
 
     // ==================== 科研画像 ====================
 
@@ -57,14 +61,44 @@ public class ResearchController {
 
     // ==================== 科研项目 ====================
 
+    @OperationLogAnnotation(module = "科研撮合", operation = "发布科研项目")
     @Operation(summary = "发布科研项目")
     @PostMapping("/project")
     public Result<Long> publishProject(@RequestBody @Valid ResearchProject project) {
-        project.setStatus("recruiting");
-        project.setCurrentMembers(1);
-        project.setViews(0);
+        // 从 SecurityContext 获取当前登录用户，设置发布者信息
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getCredentials() instanceof Long userId) {
+            project.setPublisherId(userId);
+        }
+        String roleType = getCurrentRoleType();
+        project.setPublisherType(roleType);
+
+        // 设置默认值：未指定状态时默认为招募中
+        if (!StringUtils.hasText(project.getStatus())) {
+            project.setStatus("recruiting");
+        }
+        if (project.getCurrentMembers() == null) {
+            project.setCurrentMembers(1);
+        }
+        if (project.getViews() == null) {
+            project.setViews(0);
+        }
         researchProjectService.save(project);
         return Result.success(project.getId());
+    }
+
+    /**
+     * 获取当前登录用户角色类型
+     */
+    private String getCurrentRoleType() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return "teacher";
+        }
+        return authentication.getAuthorities().stream()
+                .findFirst()
+                .map(auth -> auth.getAuthority().replace("ROLE_", "").toLowerCase())
+                .orElse("teacher");
     }
 
     @Operation(summary = "分页查询科研项目列表")
@@ -143,6 +177,20 @@ public class ResearchController {
 
         application.setStatus("pending");
         projectApplicationService.save(application);
+
+        // 发送通知给项目发布人
+        ResearchProject project = researchProjectService.getById(application.getProjectId());
+        if (project != null) {
+            notificationService.sendNotification(
+                    project.getPublisherId(),
+                    "新的项目加入申请",
+                    "您的项目「" + project.getProjectName() + "」收到了新的加入申请，请及时处理。",
+                    "application",
+                    application.getId(),
+                    "project_application"
+            );
+        }
+
         return Result.success(application.getId());
     }
 
@@ -164,6 +212,7 @@ public class ResearchController {
         return Result.success(projectApplicationService.list(wrapper));
     }
 
+    @OperationLogAnnotation(module = "科研撮合", operation = "审核项目申请")
     @Operation(summary = "审核项目申请")
     @PutMapping("/application/{id}/audit")
     public Result<Boolean> auditApplication(@PathVariable Long id,
@@ -180,15 +229,27 @@ public class ResearchController {
         boolean result = projectApplicationService.updateById(application);
 
         // 审核通过时，更新项目当前成员数
-        if ("approved".equals(status)) {
-            ResearchProject project = researchProjectService.getById(application.getProjectId());
-            if (project != null) {
-                project.setCurrentMembers(project.getCurrentMembers() + 1);
-                if (project.getCurrentMembers() >= project.getMaxMembers()) {
-                    project.setStatus("ongoing");
-                }
-                researchProjectService.updateById(project);
+        ResearchProject project = researchProjectService.getById(application.getProjectId());
+        if ("approved".equals(status) && project != null) {
+            project.setCurrentMembers(project.getCurrentMembers() + 1);
+            if (project.getCurrentMembers() >= project.getMaxMembers()) {
+                project.setStatus("ongoing");
             }
+            researchProjectService.updateById(project);
+        }
+
+        // 发送审核结果通知给申请人
+        if (project != null) {
+            String auditResult = "approved".equals(status) ? "已通过" : "未通过";
+            notificationService.sendNotification(
+                    application.getApplicantId(),
+                    "项目申请" + auditResult,
+                    "您对项目「" + project.getProjectName() + "」的加入申请" + auditResult +
+                            (StringUtils.hasText(replyMessage) ? "，回复：" + replyMessage : "。"),
+                    "application",
+                    application.getId(),
+                    "project_application"
+            );
         }
 
         return Result.success(result);
@@ -196,11 +257,19 @@ public class ResearchController {
 
     // ==================== 企业需求 ====================
 
+    @OperationLogAnnotation(module = "科研撮合", operation = "发布企业需求")
     @Operation(summary = "发布企业需求")
     @PostMapping("/demand")
     public Result<Long> publishDemand(@RequestBody @Valid EnterpriseDemand demand) {
+        // 从 SecurityContext 获取当前登录用户，设置发布企业ID
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getCredentials() instanceof Long userId) {
+            demand.setEnterpriseId(userId);
+        }
         demand.setStatus("open");
-        demand.setViews(0);
+        if (demand.getViews() == null) {
+            demand.setViews(0);
+        }
         enterpriseDemandService.save(demand);
         return Result.success(demand.getId());
     }
