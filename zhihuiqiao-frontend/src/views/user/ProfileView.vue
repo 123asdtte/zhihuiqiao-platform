@@ -117,6 +117,10 @@
               <p class="panel-desc">完善个人信息，让合作方更了解您的学术背景</p>
             </div>
             <el-form :model="profileForm" label-width="120px" class="profile-form">
+              <el-form-item label="头像">
+                <ImageUpload v-model="profileForm.avatar" class="avatar-upload" />
+                <div class="form-tip">支持 jpg、png、gif、webp 格式，建议上传正方形图片</div>
+              </el-form-item>
               <el-form-item label="真实姓名">
                 <el-input v-model="profileForm.realName" placeholder="请输入真实姓名" />
               </el-form-item>
@@ -222,6 +226,7 @@ const activeTab = ref('basic')
 const userInfo = reactive<any>({})
 
 const profileForm = reactive({
+  avatar: '',
   realName: '',
   email: '',
   phone: '',
@@ -261,6 +266,7 @@ async function loadUserInfo() {
       userStore.setUserInfo(res.data)
       Object.assign(userInfo, res.data)
       Object.assign(profileForm, {
+        avatar: res.data.avatar || '',
         realName: res.data.realName || '',
         email: res.data.email || '',
         phone: res.data.phone || '',
@@ -282,6 +288,7 @@ async function loadUserInfo() {
 // ==================== 事件处理 ====================
 async function handleSave() {
   const submitData: Record<string, any> = {
+    avatar: profileForm.avatar,
     realName: profileForm.realName,
     email: profileForm.email,
     phone: profileForm.phone,
@@ -627,6 +634,30 @@ export default {
 
   .save-btn {
     min-width: 140px;
+  }
+
+  .avatar-upload {
+    :deep(.el-upload) {
+      border-radius: 50%;
+      border-style: solid;
+    }
+
+    :deep(.uploader-trigger),
+    :deep(.image-preview) {
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+    }
+
+    :deep(.preview-img) {
+      border-radius: 50%;
+    }
+  }
+
+  .form-tip {
+    font-size: 12px;
+    color: var(--zh-text-tertiary);
+    margin-top: var(--zh-space-1);
   }
 }
 

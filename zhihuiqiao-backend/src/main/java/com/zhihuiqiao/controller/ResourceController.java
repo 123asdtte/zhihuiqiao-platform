@@ -137,6 +137,12 @@ public class ResourceController {
     @Operation(summary = "提交资源预约申请")
     @PostMapping("/booking")
     public Result<Long> submitBooking(@RequestBody @Valid ResourceBooking booking) {
+        // 从当前登录用户设置借用人，防止前端伪造
+        Long currentUserId = getCurrentUserId();
+        if (currentUserId != null) {
+            booking.setBorrowerId(currentUserId);
+        }
+
         // 校验资源是否存在且可借用
         IdleResource resource = idleResourceService.getById(booking.getResourceId());
         if (resource == null) {

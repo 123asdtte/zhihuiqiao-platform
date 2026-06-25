@@ -6,6 +6,7 @@ import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @Slf4j
 @RestControllerAdvice
@@ -32,6 +33,12 @@ public class GlobalExceptionHandler {
                     .orElse(message);
         }
         return Result.error(ResultCode.PARAM_ERROR.getCode(), message);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public Result<Void> handleTypeMismatchException(MethodArgumentTypeMismatchException e, HttpServletRequest request) {
+        log.warn("参数类型不匹配 [{}]: {}", request.getRequestURI(), e.getMessage());
+        return Result.error(ResultCode.PARAM_ERROR.getCode(), "请求参数格式错误，请检查URL或表单");
     }
 
     @ExceptionHandler(Exception.class)

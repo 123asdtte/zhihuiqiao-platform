@@ -31,3 +31,6 @@ logs/
 # 临时文件
 *.tmp
 *.temp
+
+# 用户上传文件
+zhihuiqiao-backend/uploads/

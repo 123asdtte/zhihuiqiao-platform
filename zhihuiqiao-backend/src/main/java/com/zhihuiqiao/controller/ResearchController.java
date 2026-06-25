@@ -164,7 +164,8 @@ public class ResearchController {
     public Result<ResearchProject> getProjectById(@PathVariable Long id) {
         ResearchProject project = researchProjectService.getById(id);
         if (project != null) {
-            project.setViews(project.getViews() + 1);
+            // 浏览量字段可能为空，需做防 null 处理
+            project.setViews((project.getViews() == null ? 0 : project.getViews()) + 1);
             researchProjectService.updateById(project);
         }
         return Result.success(project);
@@ -184,6 +185,12 @@ public class ResearchController {
     @Operation(summary = "提交项目加入申请")
     @PostMapping("/application")
     public Result<Long> applyProject(@RequestBody @Valid ProjectApplication application) {
+        // 从当前登录用户设置申请人ID，防止前端伪造
+        Long currentUserId = getCurrentUserId();
+        if (currentUserId != null) {
+            application.setApplicantId(currentUserId);
+        }
+
         // 防止重复申请
         LambdaQueryWrapper<ProjectApplication> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ProjectApplication::getProjectId, application.getProjectId())

@@ -50,8 +50,11 @@ public class SecurityConfig {
                     "/swagger-ui/**",
                     "/swagger-ui.html",
                     "/favicon.ico",
-                    "/error"
+                    "/error",
+                    "/uploads/**"
                 ).permitAll()
+                // 管理员接口仅允许 ADMIN 角色访问
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

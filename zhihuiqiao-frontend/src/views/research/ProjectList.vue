@@ -6,7 +6,7 @@
         <h1 class="zh-page-title">科研项目</h1>
         <p class="zh-page-subtitle">浏览师生发布的科研项目，寻找感兴趣的科研机会</p>
       </div>
-      <el-button type="primary" class="publish-btn" @click="router.push('/app/research/projects/publish')">
+      <el-button type="primary" class="publish-btn" @click="router.push('/app/research/project/publish')">
         <el-icon><Plus /></el-icon>
         发布项目
       </el-button>
