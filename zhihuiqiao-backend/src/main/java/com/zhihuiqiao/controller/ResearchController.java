@@ -54,6 +54,13 @@ public class ResearchController {
     @Operation(summary = "根据用户ID查询科研画像")
     @GetMapping("/profile/{userId}")
     public Result<ResearcherProfile> getProfileByUserId(@PathVariable Long userId) {
+        // 非管理员只能查看自己的科研画像
+        Long currentUserId = getCurrentUserId();
+        String currentRole = getCurrentRoleType();
+        if (!"admin".equals(currentRole) && !userId.equals(currentUserId)) {
+            return Result.error("无权查看他人科研画像");
+        }
+
         LambdaQueryWrapper<ResearcherProfile> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ResearcherProfile::getUserId, userId);
         return Result.success(researcherProfileService.getOne(wrapper));
@@ -99,6 +106,17 @@ public class ResearchController {
                 .findFirst()
                 .map(auth -> auth.getAuthority().replace("ROLE_", "").toLowerCase())
                 .orElse("teacher");
+    }
+
+    /**
+     * 获取当前登录用户ID
+     */
+    private Long getCurrentUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getCredentials() instanceof Long userId) {
+            return userId;
+        }
+        return null;
     }
 
     @Operation(summary = "分页查询科研项目列表")
@@ -197,19 +215,79 @@ public class ResearchController {
     @Operation(summary = "查询项目的申请列表")
     @GetMapping("/project/{projectId}/applications")
     public Result<List<ProjectApplication>> listApplicationsByProject(@PathVariable Long projectId) {
+        // 校验当前用户是否为项目发布者或管理员，防止越权查看他人项目的申请
+        ResearchProject project = researchProjectService.getById(projectId);
+        if (project == null) {
+            return Result.success(List.of());
+        }
+        Long currentUserId = getCurrentUserId();
+        String currentRole = getCurrentRoleType();
+        if (!"admin".equals(currentRole) && !project.getPublisherId().equals(currentUserId)) {
+            return Result.error("无权查看该项目的申请列表");
+        }
+
         LambdaQueryWrapper<ProjectApplication> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ProjectApplication::getProjectId, projectId)
                 .orderByDesc(ProjectApplication::getCreateTime);
         return Result.success(projectApplicationService.list(wrapper));
     }
 
-    @Operation(summary = "查询我的申请列表")
+    @Operation(summary = "查询我的申请列表（管理员可查看全部申请）")
     @GetMapping("/application/my")
-    public Result<List<ProjectApplication>> listMyApplications(@RequestParam Long applicantId) {
+    public Result<List<ProjectApplication>> listMyApplications(@RequestParam(required = false) Long applicantId) {
+        // 从 SecurityContext 获取当前登录用户ID与角色
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Long currentUserId = authentication != null && authentication.getCredentials() instanceof Long id ? id : null;
+        String currentRole = getCurrentRoleType();
+
         LambdaQueryWrapper<ProjectApplication> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(ProjectApplication::getApplicantId, applicantId)
-                .orderByDesc(ProjectApplication::getCreateTime);
-        return Result.success(projectApplicationService.list(wrapper));
+        wrapper.orderByDesc(ProjectApplication::getCreateTime);
+
+        if ("admin".equals(currentRole)) {
+            // 管理员：可查看全部申请；如果传了 applicantId 则按申请人筛选
+            if (applicantId != null) {
+                wrapper.eq(ProjectApplication::getApplicantId, applicantId);
+            }
+        } else {
+            // 非管理员：只能查看自己的申请，忽略传入的 applicantId
+            if (currentUserId == null) {
+                return Result.error("用户未登录");
+            }
+            wrapper.eq(ProjectApplication::getApplicantId, currentUserId);
+        }
+
+        List<ProjectApplication> applications = projectApplicationService.list(wrapper);
+
+        // 批量查询项目名称并填充到申请记录中
+        if (!applications.isEmpty()) {
+            List<Long> projectIds = applications.stream()
+                    .map(ProjectApplication::getProjectId)
+                    .distinct()
+                    .toList();
+            List<ResearchProject> projects = researchProjectService.listByIds(projectIds);
+            java.util.Map<Long, String> projectNameMap = projects.stream()
+                    .collect(java.util.stream.Collectors.toMap(ResearchProject::getId, ResearchProject::getProjectName));
+
+            // 管理员查看全部申请时，批量查询申请人信息
+            List<Long> applicantIds = applications.stream()
+                    .map(ProjectApplication::getApplicantId)
+                    .distinct()
+                    .toList();
+            java.util.Map<Long, String> applicantNameMap = new java.util.HashMap<>();
+            if (!applicantIds.isEmpty()) {
+                List<SysUser> users = sysUserService.listByIds(applicantIds);
+                applicantNameMap = users.stream()
+                        .collect(java.util.stream.Collectors.toMap(SysUser::getId,
+                                u -> StringUtils.hasText(u.getRealName()) ? u.getRealName() : u.getUsername()));
+            }
+
+            for (ProjectApplication application : applications) {
+                application.setProjectName(projectNameMap.getOrDefault(application.getProjectId(), "未知项目"));
+                application.setApplicantName(applicantNameMap.getOrDefault(application.getApplicantId(), "未知用户"));
+            }
+        }
+
+        return Result.success(applications);
     }
 
     @OperationLogAnnotation(module = "科研撮合", operation = "审核项目申请")

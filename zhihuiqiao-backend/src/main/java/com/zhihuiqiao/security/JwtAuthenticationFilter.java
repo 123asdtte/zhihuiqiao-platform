@@ -31,21 +31,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = extractToken(request);
 
         try {
-            if (StringUtils.hasText(token) && jwtUtil.validateToken(token)) {
-                Long userId = jwtUtil.getUserIdFromToken(token);
-                String username = jwtUtil.getUsernameFromToken(token);
-                String roleType = jwtUtil.getRoleTypeFromToken(token);
+            if (StringUtils.hasText(token)) {
+                // Token 已过期时直接返回 401，便于前端识别并跳转登录
+                if (jwtUtil.isTokenExpired(token)) {
+                    responseUnauthorized(response, "登录已过期，请重新登录");
+                    return;
+                }
 
-                UserDetails userDetails = User.builder()
-                        .username(username)
-                        .password("")
-                        .authorities("ROLE_" + roleType.toUpperCase())
-                        .build();
+                if (jwtUtil.validateToken(token)) {
+                    Long userId = jwtUtil.getUserIdFromToken(token);
+                    String username = jwtUtil.getUsernameFromToken(token);
+                    String roleType = jwtUtil.getRoleTypeFromToken(token);
 
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(userDetails, userId, userDetails.getAuthorities());
+                    UserDetails userDetails = User.builder()
+                            .username(username)
+                            .password("")
+                            .authorities("ROLE_" + roleType.toUpperCase())
+                            .build();
 
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(userDetails, userId, userDetails.getAuthorities());
+
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                }
             }
         } catch (Exception e) {
             // Token 解析异常时继续放行，由后续授权规则决定是否允许访问
@@ -53,6 +61,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    /**
+     * 返回 401 未认证响应
+     */
+    private void responseUnauthorized(HttpServletResponse response, String message) throws IOException {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json;charset=UTF-8");
+        response.getWriter().write(String.format("{\"code\":401,\"message\":\"%s\",\"data\":null}", message));
     }
 
     private String extractToken(HttpServletRequest request) {

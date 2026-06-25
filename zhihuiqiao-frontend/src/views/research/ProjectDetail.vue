@@ -1,70 +1,121 @@
 <template>
-  <div class="project-detail-page">
-    <el-page-header title="返回列表" @back="goBack" />
+  <div class="project-detail-page zh-page">
+    <div class="back-nav">
+      <el-button text @click="goBack">
+        <el-icon><ArrowLeft /></el-icon>
+        返回项目列表
+      </el-button>
+    </div>
 
-    <el-card v-if="project" class="detail-card" shadow="never">
-      <div class="detail-header">
-        <div class="header-left">
-          <h2>{{ project.projectName }}</h2>
-          <div class="header-meta">
-            <el-tag :type="statusType(project.status)">{{ statusText(project.status) }}</el-tag>
-            <el-tag type="info">{{ project.projectType }}</el-tag>
-            <span class="project-code">编号：{{ project.projectCode || '-' }}</span>
+    <div v-if="project" class="detail-layout">
+      <!-- 左侧主要内容 -->
+      <div class="detail-main">
+        <div class="detail-hero">
+          <div class="detail-header">
+            <div class="header-tags">
+              <span class="project-status" :class="project.status">{{ statusText(project.status) }}</span>
+              <span class="zh-tag">{{ project.projectType }}</span>
+              <span class="project-code">编号：{{ project.projectCode || '-' }}</span>
+            </div>
+            <h1 class="detail-title">{{ project.projectName }}</h1>
+            <div class="detail-meta">
+              <span class="meta-item">
+                <el-icon><View /></el-icon>
+                {{ project.views }} 次浏览
+              </span>
+              <span class="meta-item">
+                <el-icon><Calendar /></el-icon>
+                发布于 {{ project.createTime || '未知' }}
+              </span>
+            </div>
+          </div>
+
+          <div class="detail-actions-bar">
+            <el-button
+              v-if="canViewApplications"
+              size="large"
+              @click="showApplicationsDrawer"
+            >
+              查看申请
+            </el-button>
+            <el-button
+              type="primary"
+              size="large"
+              :disabled="!canApply"
+              @click="showApplyDialog"
+              class="apply-btn"
+            >
+              {{ applyButtonText }}
+            </el-button>
           </div>
         </div>
-        <div class="header-right">
-          <div class="view-count">
-            <el-icon><View /></el-icon>
-            {{ project.views }} 次浏览
+
+        <div class="detail-sections">
+          <div class="detail-section">
+            <h3 class="section-title">
+              <span class="section-marker"></span>
+              项目简介
+            </h3>
+            <div class="section-content">{{ project.projectDescription || '暂无项目简介' }}</div>
+          </div>
+
+          <div class="detail-section">
+            <h3 class="section-title">
+              <span class="section-marker"></span>
+              成员要求
+            </h3>
+            <div class="section-content">{{ project.requirements || '暂无成员要求' }}</div>
+          </div>
+
+          <div class="detail-section">
+            <h3 class="section-title">
+              <span class="section-marker"></span>
+              预期成果
+            </h3>
+            <div class="section-content">{{ project.expectedOutcomes || '暂无预期成果' }}</div>
           </div>
         </div>
       </div>
 
-      <el-descriptions :column="2" border>
-        <el-descriptions-item label="研究领域">{{ project.researchFields || '暂无' }}</el-descriptions-item>
-        <el-descriptions-item label="项目周期">
-          {{ project.startDate || '待定' }} 至 {{ project.endDate || '待定' }}
-        </el-descriptions-item>
-        <el-descriptions-item label="团队成员">
-          {{ project.currentMembers || 0 }} / {{ project.maxMembers || 0 }} 人
-        </el-descriptions-item>
-        <el-descriptions-item label="发布时间">{{ project.createTime || '暂无' }}</el-descriptions-item>
-      </el-descriptions>
+      <!-- 右侧信息栏 -->
+      <aside class="detail-sidebar">
+        <div class="sidebar-card info-card">
+          <h4 class="sidebar-title">项目信息</h4>
+          <div class="info-list">
+            <div class="info-item">
+              <span class="info-label">研究领域</span>
+              <span class="info-value">{{ project.researchFields || '暂无' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">项目周期</span>
+              <span class="info-value">{{ project.startDate || '待定' }} 至 {{ project.endDate || '待定' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">团队规模</span>
+              <span class="info-value">{{ project.currentMembers || 0 }} / {{ project.maxMembers || 0 }} 人</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">发布人</span>
+              <span class="info-value">{{ project.publisherName || '未知' }}</span>
+            </div>
+          </div>
+        </div>
 
-      <div class="detail-section">
-        <h3>项目简介</h3>
-        <p>{{ project.projectDescription || '暂无简介' }}</p>
-      </div>
-
-      <div class="detail-section">
-        <h3>成员要求</h3>
-        <p>{{ project.requirements || '暂无要求' }}</p>
-      </div>
-
-      <div class="detail-section">
-        <h3>预期成果</h3>
-        <p>{{ project.expectedOutcomes || '暂无预期成果' }}</p>
-      </div>
-
-      <div class="detail-actions">
-        <el-button
-          v-if="canViewApplications"
-          type="default"
-          size="large"
-          @click="showApplicationsDrawer"
-        >
-          查看申请
-        </el-button>
-        <el-button
-          type="primary"
-          size="large"
-          :disabled="!canApply"
-          @click="showApplyDialog"
-        >
-          {{ applyButtonText }}
-        </el-button>
-      </div>
-    </el-card>
+        <div class="sidebar-card progress-card">
+          <h4 class="sidebar-title">招募进度</h4>
+          <div class="progress-ring-wrap">
+            <el-progress
+              type="dashboard"
+              :percentage="memberProgress"
+              :color="progressColor"
+              :stroke-width="10"
+              :width="140"
+            />
+            <div class="progress-text">已招募 {{ project.currentMembers || 0 }} 人</div>
+          </div>
+        </div>
+      </aside>
+    </div>
 
     <el-skeleton v-else :rows="10" animated />
 
@@ -115,8 +166,9 @@
     <el-dialog
       v-model="applyDialogVisible"
       title="申请加入项目"
-      width="500px"
+      width="520px"
       destroy-on-close
+      class="apply-dialog"
     >
       <el-form
         ref="applyFormRef"
@@ -128,7 +180,7 @@
           <el-input
             v-model="applyForm.applyReason"
             type="textarea"
-            :rows="4"
+            :rows="5"
             placeholder="请简要说明您为什么想加入该项目，以及您能贡献什么"
             maxlength="500"
             show-word-limit
@@ -137,7 +189,7 @@
       </el-form>
       <template #footer>
         <el-button @click="applyDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="applyLoading" @click="handleApply">提交申请</el-button>
+        <el-button type="primary" :loading="applyLoading" @click="handleApply" class="apply-btn">提交申请</el-button>
       </template>
     </el-dialog>
   </div>
@@ -147,7 +199,7 @@
 import { reactive, ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { View } from '@element-plus/icons-vue'
+import { View, Calendar, ArrowLeft } from '@element-plus/icons-vue'
 import { getProjectDetail, applyProject, getProjectApplications, auditApplication } from '@/api/research'
 import { useUserStore } from '@/stores/user'
 
@@ -193,26 +245,11 @@ function statusText(status: string) {
 }
 
 /**
- * 状态标签类型
- */
-function statusType(status: string) {
-  const map: Record<string, any> = {
-    recruiting: 'success',
-    ongoing: 'primary',
-    completed: 'info',
-    closed: 'danger'
-  }
-  return map[status] || 'info'
-}
-
-/**
  * 是否可申请加入
  */
 const canApply = computed(() => {
   if (!project.value) return false
-  // 只有招募中的项目可以申请
   if (project.value.status !== 'recruiting') return false
-  // 学生角色可以申请加入
   return userStore.isStudent
 })
 
@@ -227,12 +264,24 @@ const applyButtonText = computed(() => {
 })
 
 /**
- * 是否可以查看项目申请（教师/管理员/企业可查看）
+ * 是否可以查看项目申请
  */
 const canViewApplications = computed(() => {
-  // 当前实现：教师、管理员、企业角色可查看项目申请
-  // 后续可扩展为仅项目负责人可见
   return userStore.isTeacher || userStore.isAdmin || userStore.isEnterprise
+})
+
+/**
+ * 招募进度百分比
+ */
+const memberProgress = computed(() => {
+  if (!project.value || !project.value.maxMembers) return 0
+  return Math.min(Math.round(((project.value.currentMembers || 0) / project.value.maxMembers) * 100), 100)
+})
+
+const progressColor = computed(() => {
+  if (memberProgress.value >= 80) return '#b5423b'
+  if (memberProgress.value >= 50) return '#c9a227'
+  return '#1a365d'
 })
 
 /**
@@ -375,73 +424,261 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-.project-detail-page {
-  padding: 20px;
+.back-nav {
+  margin-bottom: var(--zh-space-4);
 
-  .detail-card {
-    margin-top: 20px;
+  .el-button {
+    color: var(--zh-text-secondary);
+    font-weight: 500;
 
-    .detail-header {
+    &:hover {
+      color: var(--zh-primary);
+      background: var(--zh-primary-soft);
+    }
+  }
+}
+
+.detail-layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: var(--zh-space-6);
+  align-items: start;
+}
+
+.detail-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--zh-space-6);
+}
+
+.detail-hero {
+  background: var(--zh-bg-elevated);
+  border: 1px solid var(--zh-border-light);
+  border-radius: var(--zh-radius-lg);
+  padding: var(--zh-space-8);
+  box-shadow: var(--zh-shadow);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 5px;
+    background: linear-gradient(90deg, var(--zh-primary) 0%, var(--zh-secondary) 50%, var(--zh-accent) 100%);
+  }
+}
+
+.detail-header {
+  margin-bottom: var(--zh-space-6);
+
+  .header-tags {
+    display: flex;
+    align-items: center;
+    gap: var(--zh-space-3);
+    margin-bottom: var(--zh-space-4);
+    flex-wrap: wrap;
+
+    .project-status {
+      padding: 5px 12px;
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #fff;
+      background-color: var(--zh-text-tertiary);
+
+      &.recruiting { background-color: var(--zh-success); }
+      &.ongoing { background-color: var(--zh-secondary); }
+      &.completed { background-color: var(--zh-text-tertiary); }
+      &.closed { background-color: var(--zh-danger); }
+    }
+
+    .project-code {
+      font-size: 13px;
+      color: var(--zh-text-tertiary);
+      font-family: var(--zh-font-mono);
+    }
+  }
+
+  .detail-title {
+    font-family: var(--zh-font-display);
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--zh-primary);
+    margin: 0 0 var(--zh-space-4) 0;
+    line-height: 1.3;
+  }
+
+  .detail-meta {
+    display: flex;
+    gap: var(--zh-space-5);
+
+    .meta-item {
       display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 24px;
+      align-items: center;
+      gap: var(--zh-space-2);
+      font-size: 13px;
+      color: var(--zh-text-secondary);
+    }
+  }
+}
 
-      .header-left {
-        h2 {
-          margin: 0 0 12px 0;
-          color: #303133;
-          font-size: 22px;
-        }
+.detail-actions-bar {
+  display: flex;
+  gap: var(--zh-space-3);
 
-        .header-meta {
-          display: flex;
-          align-items: center;
-          gap: 12px;
+  .apply-btn {
+    background: var(--zh-accent) !important;
+    border-color: var(--zh-accent) !important;
+    color: #fff !important;
+    font-weight: 600;
 
-          .project-code {
-            font-size: 13px;
-            color: #909399;
-          }
-        }
-      }
-
-      .header-right {
-        .view-count {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          font-size: 14px;
-          color: #909399;
-        }
-      }
+    &:hover:not(:disabled) {
+      background: var(--zh-accent-light) !important;
+      border-color: var(--zh-accent-light) !important;
     }
 
-    .detail-section {
-      margin-top: 24px;
-
-      h3 {
-        margin: 0 0 12px 0;
-        font-size: 16px;
-        color: #303133;
-        border-left: 4px solid #409eff;
-        padding-left: 10px;
-      }
-
-      p {
-        margin: 0;
-        color: #606266;
-        line-height: 1.8;
-        font-size: 14px;
-      }
+    &:disabled {
+      background: var(--zh-border) !important;
+      border-color: var(--zh-border) !important;
+      color: var(--zh-text-tertiary) !important;
     }
+  }
+}
 
-    .detail-actions {
-      margin-top: 32px;
-      display: flex;
-      justify-content: center;
-      gap: 16px;
+.detail-sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--zh-space-5);
+}
+
+.detail-section {
+  background: var(--zh-bg-elevated);
+  border: 1px solid var(--zh-border-light);
+  border-radius: var(--zh-radius);
+  padding: var(--zh-space-6);
+  box-shadow: var(--zh-shadow);
+
+  .section-title {
+    font-family: var(--zh-font-display);
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--zh-primary);
+    margin: 0 0 var(--zh-space-4) 0;
+    display: flex;
+    align-items: center;
+    gap: var(--zh-space-3);
+
+    .section-marker {
+      width: 4px;
+      height: 22px;
+      background: var(--zh-accent);
+      border-radius: 2px;
     }
+  }
+
+  .section-content {
+    font-size: 15px;
+    line-height: 1.8;
+    color: var(--zh-text-secondary);
+    white-space: pre-wrap;
+  }
+}
+
+// 侧边栏
+.detail-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--zh-space-5);
+  position: sticky;
+  top: 88px;
+}
+
+.sidebar-card {
+  background: var(--zh-bg-elevated);
+  border: 1px solid var(--zh-border-light);
+  border-radius: var(--zh-radius);
+  padding: var(--zh-space-6);
+  box-shadow: var(--zh-shadow);
+}
+
+.sidebar-title {
+  font-family: var(--zh-font-display);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--zh-primary);
+  margin: 0 0 var(--zh-space-5) 0;
+  padding-bottom: var(--zh-space-3);
+  border-bottom: 1px solid var(--zh-border-light);
+}
+
+.info-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--zh-space-4);
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--zh-space-1);
+
+  .info-label {
+    font-size: 12px;
+    color: var(--zh-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .info-value {
+    font-size: 14px;
+    color: var(--zh-text-primary);
+    font-weight: 500;
+    line-height: 1.5;
+  }
+}
+
+.progress-ring-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--zh-space-3);
+
+  .progress-text {
+    font-size: 14px;
+    color: var(--zh-text-secondary);
+  }
+}
+
+@media (max-width: 1200px) {
+  .detail-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-sidebar {
+    position: static;
+    flex-direction: row;
+
+    .info-card,
+    .progress-card {
+      flex: 1;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .detail-hero {
+    padding: var(--zh-space-5);
+  }
+
+  .detail-header .detail-title {
+    font-size: 24px;
+  }
+
+  .detail-sidebar {
+    flex-direction: column;
   }
 }
 </style>

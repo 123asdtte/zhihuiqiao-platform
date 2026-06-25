@@ -1,33 +1,89 @@
 <template>
-  <div class="my-applications-page">
+  <div class="my-applications-page zh-page">
+    <!-- 页面标题区 -->
     <div class="page-header">
-      <h2>我的申请</h2>
-      <p>查看您申请加入的科研项目状态</p>
+      <div class="header-main">
+        <h2 class="zh-page-title">{{ pageTitle }}</h2>
+        <p class="zh-page-subtitle">{{ pageSubtitle }}</p>
+      </div>
     </div>
 
-    <el-card shadow="never">
-      <el-table v-loading="loading" :data="applications" style="width: 100%">
+    <el-card shadow="never" class="zh-card">
+      <el-table
+        v-loading="loading"
+        :data="applications"
+        style="width: 100%"
+        class="zh-table"
+      >
+        <!-- 项目名称列 -->
         <el-table-column prop="projectName" label="项目名称" min-width="180">
           <template #default="{ row }">
-            <el-button link type="primary" @click="goToProject(row.projectId)">
+            <el-button link type="primary" class="project-link" @click="goToProject(row.projectId)">
               {{ row.projectName }}
             </el-button>
           </template>
         </el-table-column>
+
+        <!-- 管理员专属：申请人列 -->
+        <el-table-column
+          v-if="userStore.isAdmin"
+          prop="applicantName"
+          label="申请人"
+          width="140"
+        >
+          <template #default="{ row }">
+            <el-tag size="small" type="info" effect="plain">
+              {{ row.applicantName || '未知用户' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+
+        <!-- 申请理由列 -->
         <el-table-column prop="applyReason" label="申请理由" min-width="240" show-overflow-tooltip />
+
+        <!-- 申请状态列 -->
         <el-table-column prop="status" label="申请状态" width="120">
           <template #default="{ row }">
-            <el-tag :type="statusType(row.status)">
+            <el-tag :type="statusType(row.status)" effect="light">
               {{ statusText(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
+
+        <!-- 审核回复列 -->
         <el-table-column prop="replyMessage" label="审核回复" min-width="180" show-overflow-tooltip>
           <template #default="{ row }">
-            {{ row.replyMessage || '暂无回复' }}
+            <span class="reply-text">{{ row.replyMessage || '暂无回复' }}</span>
           </template>
         </el-table-column>
+
+        <!-- 申请时间列 -->
         <el-table-column prop="createTime" label="申请时间" width="180" />
+
+        <!-- 管理员专属：操作列（快速审核入口） -->
+        <el-table-column v-if="userStore.isAdmin" label="操作" width="160" fixed="right">
+          <template #default="{ row }">
+            <el-button
+              v-if="row.status === 'pending'"
+              link
+              type="success"
+              size="small"
+              @click="handleAudit(row, 'approved')"
+            >
+              通过
+            </el-button>
+            <el-button
+              v-if="row.status === 'pending'"
+              link
+              type="danger"
+              size="small"
+              @click="handleAudit(row, 'rejected')"
+            >
+              拒绝
+            </el-button>
+            <span v-else class="audit-done">已处理</span>
+          </template>
+        </el-table-column>
       </el-table>
 
       <el-empty v-if="!loading && applications.length === 0" description="暂无申请记录" />
@@ -36,10 +92,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { getMyApplications } from '@/api/research'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { getMyApplications, auditApplication } from '@/api/research'
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
@@ -47,6 +103,20 @@ const userStore = useUserStore()
 
 const applications = ref<any[]>([])
 const loading = ref(false)
+
+/**
+ * 页面标题：学生显示"我的申请"，管理员显示"项目申请管理"
+ */
+const pageTitle = computed(() => (userStore.isAdmin ? '项目申请管理' : '我的申请'))
+
+/**
+ * 页面副标题
+ */
+const pageSubtitle = computed(() =>
+  userStore.isAdmin
+    ? '查看并管理平台内所有科研项目加入申请'
+    : '查看您申请加入的科研项目状态'
+)
 
 /**
  * 状态文本映射
@@ -73,17 +143,21 @@ function statusType(status: string) {
 }
 
 /**
- * 加载我的申请列表
+ * 加载申请列表
+ * 学生：只查询自己的申请
+ * 管理员：查询全部申请
  */
-async function loadMyApplications() {
-  if (!userStore.userInfo?.id) {
+async function loadApplications() {
+  if (!userStore.isAdmin && !userStore.userInfo?.id) {
     ElMessage.warning('请先登录')
     return
   }
 
   loading.value = true
   try {
-    const res: any = await getMyApplications(userStore.userInfo.id)
+    // 管理员不传 applicantId，后端返回全部申请；学生传入当前用户ID
+    const applicantId = userStore.isAdmin ? undefined : userStore.userInfo?.id
+    const res: any = await getMyApplications(applicantId)
     applications.value = res.data || []
   } catch (error) {
     ElMessage.error('加载申请记录失败')
@@ -100,28 +174,71 @@ function goToProject(projectId: number) {
   router.push(`/app/research/projects/${projectId}`)
 }
 
+/**
+ * 管理员快速审核申请
+ */
+async function handleAudit(row: any, status: string) {
+  const actionText = status === 'approved' ? '通过' : '拒绝'
+  try {
+    await ElMessageBox.confirm(
+      `确定要${actionText}「${row.applicantName || '该用户'}」对项目「${row.projectName}」的申请吗？`,
+      '审核确认',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: status === 'approved' ? 'success' : 'warning'
+      }
+    )
+    const res: any = await auditApplication(row.id, status)
+    if (res.code === 200) {
+      ElMessage.success(`已${actionText}该申请`)
+      loadApplications()
+    } else {
+      ElMessage.error(res.message || '审核失败')
+    }
+  } catch (error) {
+    // 用户取消时不做任何处理
+    if (error !== 'cancel') {
+      console.error(error)
+    }
+  }
+}
+
 onMounted(() => {
-  loadMyApplications()
+  loadApplications()
 })
 </script>
 
 <style scoped lang="scss">
 .my-applications-page {
-  padding: 20px;
+  padding: var(--zh-space-6);
 
   .page-header {
-    margin-bottom: 20px;
+    margin-bottom: var(--zh-space-6);
 
-    h2 {
-      margin: 0 0 8px 0;
-      color: #303133;
+    .zh-page-title {
+      margin: 0 0 var(--zh-space-2);
+      color: var(--zh-primary);
     }
 
-    p {
+    .zh-page-subtitle {
       margin: 0;
-      color: #909399;
+      color: var(--zh-text-secondary);
       font-size: 14px;
     }
+  }
+
+  .project-link {
+    font-weight: 600;
+  }
+
+  .reply-text {
+    color: var(--zh-text-secondary);
+  }
+
+  .audit-done {
+    font-size: 13px;
+    color: var(--zh-text-tertiary);
   }
 }
 </style>

@@ -38,6 +38,31 @@ public class ResourceController {
     private final ResourceTransferLogService resourceTransferLogService;
     private final NotificationService notificationService;
 
+    /**
+     * 获取当前登录用户ID
+     */
+    private Long getCurrentUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getCredentials() instanceof Long userId) {
+            return userId;
+        }
+        return null;
+    }
+
+    /**
+     * 获取当前登录用户角色类型
+     */
+    private String getCurrentRoleType() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return "";
+        }
+        return authentication.getAuthorities().stream()
+                .findFirst()
+                .map(auth -> auth.getAuthority().replace("ROLE_", "").toLowerCase())
+                .orElse("");
+    }
+
     // ==================== 闲置资源 ====================
 
     @OperationLogAnnotation(module = "资源流转", operation = "发布闲置资源")
@@ -145,18 +170,46 @@ public class ResourceController {
     @Operation(summary = "查询资源的预约列表")
     @GetMapping("/{resourceId}/bookings")
     public Result<List<ResourceBooking>> listBookingsByResource(@PathVariable Long resourceId) {
+        // 校验当前用户是否为资源所有者或管理员，防止越权查看他人资源的预约
+        IdleResource resource = idleResourceService.getById(resourceId);
+        if (resource == null) {
+            return Result.success(List.of());
+        }
+        Long currentUserId = getCurrentUserId();
+        String currentRole = getCurrentRoleType();
+        if (!"admin".equals(currentRole) && !resource.getOwnerId().equals(currentUserId)) {
+            return Result.error("无权查看该资源的预约列表");
+        }
+
         LambdaQueryWrapper<ResourceBooking> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ResourceBooking::getResourceId, resourceId)
                 .orderByDesc(ResourceBooking::getCreateTime);
         return Result.success(resourceBookingService.list(wrapper));
     }
 
-    @Operation(summary = "查询我的预约列表")
+    @Operation(summary = "查询我的预约列表（管理员可查看全部预约）")
     @GetMapping("/booking/my")
-    public Result<List<ResourceBooking>> listMyBookings(@RequestParam Long borrowerId) {
+    public Result<List<ResourceBooking>> listMyBookings(@RequestParam(required = false) Long borrowerId) {
+        // 从 SecurityContext 获取当前登录用户ID与角色
+        Long currentUserId = getCurrentUserId();
+        String currentRole = getCurrentRoleType();
+
         LambdaQueryWrapper<ResourceBooking> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(ResourceBooking::getBorrowerId, borrowerId)
-                .orderByDesc(ResourceBooking::getCreateTime);
+        wrapper.orderByDesc(ResourceBooking::getCreateTime);
+
+        if ("admin".equals(currentRole)) {
+            // 管理员：可查看全部预约；如果传了 borrowerId 则按借用人筛选
+            if (borrowerId != null) {
+                wrapper.eq(ResourceBooking::getBorrowerId, borrowerId);
+            }
+        } else {
+            // 非管理员：只能查看自己的预约
+            if (currentUserId == null) {
+                return Result.error("用户未登录");
+            }
+            wrapper.eq(ResourceBooking::getBorrowerId, currentUserId);
+        }
+
         List<ResourceBooking> bookings = resourceBookingService.list(wrapper);
         // 填充资源名称，便于前端展示
         bookings.forEach(booking -> {

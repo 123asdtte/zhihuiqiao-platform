@@ -126,13 +126,14 @@ export function getProjectApplications(projectId: number | string) {
 
 /**
  * 查询我的申请列表
- * @param applicantId 申请人ID
+ * 学生角色必须传入 applicantId（通常为当前用户ID）；管理员可不传，返回全部申请
+ * @param applicantId 申请人ID（可选）
  */
-export function getMyApplications(applicantId: number) {
+export function getMyApplications(applicantId?: number) {
   return request({
     url: '/api/research/application/my',
     method: 'get',
-    params: { applicantId }
+    params: applicantId != null ? { applicantId } : undefined
   })
 }
 

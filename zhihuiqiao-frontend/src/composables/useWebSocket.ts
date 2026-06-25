@@ -1,7 +1,21 @@
 import { ref, onUnmounted } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { useNotificationStore } from '@/stores/notification'
-import { ElNotification } from 'element-plus'
+import { ElNotification, ElMessage } from 'element-plus'
+import router from '@/router'
+
+/**
+ * 判断 JWT Token 是否已过期
+ */
+function isTokenExpired(token: string): boolean {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    if (!payload.exp) return false
+    return Date.now() >= payload.exp * 1000
+  } catch (error) {
+    return true
+  }
+}
 
 /**
  * WebSocket 连接状态类型
@@ -45,6 +59,14 @@ export function useWebSocket() {
   function connect() {
     // 未登录时不连接
     if (!userStore.token) {
+      return
+    }
+
+    // Token 已过期时不再连接，自动登出并跳转登录页
+    if (isTokenExpired(userStore.token)) {
+      userStore.logout()
+      router.push('/login')
+      ElMessage.warning('登录已过期，请重新登录')
       return
     }
 

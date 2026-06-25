@@ -64,6 +64,20 @@ public class JwtUtil {
         }
     }
 
+    /**
+     * 判断 Token 是否已过期
+     */
+    public boolean isTokenExpired(String token) {
+        try {
+            parseToken(token);
+            return false;
+        } catch (ExpiredJwtException e) {
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     public Long getUserIdFromToken(String token) {
         Claims claims = parseToken(token);
         return Long.valueOf(claims.getSubject());

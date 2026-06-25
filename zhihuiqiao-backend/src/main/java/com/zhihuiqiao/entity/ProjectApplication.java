@@ -1,6 +1,7 @@
 package com.zhihuiqiao.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
@@ -27,9 +28,21 @@ public class ProjectApplication {
     private Long projectId;
 
     /**
+     * 项目名称（非数据库字段，用于前端展示）
+     */
+    @TableField(exist = false)
+    private String projectName;
+
+    /**
      * 申请人ID
      */
     private Long applicantId;
+
+    /**
+     * 申请人名称（非数据库字段，管理员查看全部申请时用于前端展示）
+     */
+    @TableField(exist = false)
+    private String applicantName;
 
     /**
      * 申请理由

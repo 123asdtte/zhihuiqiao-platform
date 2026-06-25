@@ -1,21 +1,26 @@
 <template>
-  <div class="register-page">
-    <el-card class="register-card" shadow="hover">
-      <template #header>
-        <div class="register-header">
-          <h2>智汇桥</h2>
-          <p>注册新账号</p>
-        </div>
-      </template>
+  <div class="register-view">
+    <div class="form-header">
+      <h2 class="form-title">创建账户</h2>
+      <p class="form-subtitle">加入智汇桥，连接产学研用无限可能</p>
+    </div>
 
-      <el-form
-        ref="registerFormRef"
-        :model="registerForm"
-        :rules="registerRules"
-        label-position="top"
-        size="large"
-        @keyup.enter="handleRegister"
-      >
+    <el-form
+      ref="registerFormRef"
+      :model="registerForm"
+      :rules="registerRules"
+      label-position="top"
+      size="large"
+      class="register-form"
+      @keyup.enter="handleRegister"
+    >
+      <!-- 账户信息 -->
+      <div class="form-section">
+        <h3 class="section-title">
+          <span class="section-marker"></span>
+          账户信息
+        </h3>
+
         <el-form-item label="用户名" prop="username">
           <el-input
             v-model="registerForm.username"
@@ -46,6 +51,14 @@
             clearable
           />
         </el-form-item>
+      </div>
+
+      <!-- 个人资料 -->
+      <div class="form-section">
+        <h3 class="section-title">
+          <span class="section-marker"></span>
+          个人资料
+        </h3>
 
         <el-form-item label="真实姓名" prop="realName">
           <el-input
@@ -73,98 +86,93 @@
             clearable
           />
         </el-form-item>
+      </div>
 
-        <el-form-item label="角色类型" prop="roleType">
-          <el-select
-            v-model="registerForm.roleType"
-            placeholder="请选择角色类型"
-            style="width: 100%"
-            @change="handleRoleChange"
-          >
-            <el-option label="学生" value="student" />
-            <el-option label="教师" value="teacher" />
-            <el-option label="企业" value="enterprise" />
-          </el-select>
+      <!-- 角色选择 -->
+      <div class="form-section">
+        <h3 class="section-title">
+          <span class="section-marker"></span>
+          选择身份
+        </h3>
+
+        <el-form-item prop="roleType">
+          <div class="role-cards">
+            <div
+              v-for="role in roles"
+              :key="role.value"
+              class="role-card"
+              :class="{ active: registerForm.roleType === role.value }"
+              @click="registerForm.roleType = role.value"
+            >
+              <el-icon :size="24"><component :is="role.icon" /></el-icon>
+              <span class="role-name">{{ role.label }}</span>
+            </div>
+          </div>
         </el-form-item>
 
         <!-- 学生特有字段 -->
         <template v-if="registerForm.roleType === 'student'">
           <el-form-item label="院系" prop="department">
-            <el-input
-              v-model="registerForm.department"
-              placeholder="请输入院系"
-              clearable
-            />
+            <el-input v-model="registerForm.department" placeholder="请输入院系" clearable />
           </el-form-item>
           <el-form-item label="专业" prop="major">
-            <el-input
-              v-model="registerForm.major"
-              placeholder="请输入专业"
-              clearable
-            />
+            <el-input v-model="registerForm.major" placeholder="请输入专业" clearable />
           </el-form-item>
           <el-form-item label="年级" prop="grade">
-            <el-input
-              v-model="registerForm.grade"
-              placeholder="例如：2022级"
-              clearable
-            />
+            <el-input v-model="registerForm.grade" placeholder="例如：2022级" clearable />
           </el-form-item>
         </template>
 
         <!-- 教师特有字段 -->
         <template v-if="registerForm.roleType === 'teacher'">
           <el-form-item label="院系" prop="department">
-            <el-input
-              v-model="registerForm.department"
-              placeholder="请输入院系"
-              clearable
-            />
+            <el-input v-model="registerForm.department" placeholder="请输入院系" clearable />
           </el-form-item>
           <el-form-item label="职称" prop="title">
-            <el-input
-              v-model="registerForm.title"
-              placeholder="例如：副教授"
-              clearable
-            />
+            <el-input v-model="registerForm.title" placeholder="例如：副教授" clearable />
           </el-form-item>
         </template>
 
         <!-- 企业特有字段 -->
         <template v-if="registerForm.roleType === 'enterprise'">
           <el-form-item label="企业名称" prop="companyName">
-            <el-input
-              v-model="registerForm.companyName"
-              placeholder="请输入企业名称"
-              clearable
-            />
+            <el-input v-model="registerForm.companyName" placeholder="请输入企业名称" clearable />
           </el-form-item>
         </template>
-
-        <el-form-item>
-          <el-button
-            type="primary"
-            class="register-button"
-            :loading="loading"
-            @click="handleRegister"
-          >
-            注 册
-          </el-button>
-        </el-form-item>
-      </el-form>
-
-      <div class="register-tips">
-        <p>已有账号？<el-button link @click="goToLogin">立即登录</el-button></p>
       </div>
-    </el-card>
+
+      <el-form-item>
+        <el-button
+          type="primary"
+          class="submit-btn"
+          :loading="loading"
+          @click="handleRegister"
+        >
+          注 册
+        </el-button>
+      </el-form-item>
+    </el-form>
+
+    <div class="form-footer">
+      <p>已有账号？<el-button link type="primary" @click="goToLogin">立即登录</el-button></p>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { User, Lock, UserFilled, Message, Phone } from '@element-plus/icons-vue'
+import {
+  User,
+  Lock,
+  UserFilled,
+  Message,
+  Phone,
+  Reading,
+  User as TeacherIcon,
+  OfficeBuilding
+} from '@element-plus/icons-vue'
 import { register } from '@/api/auth'
 
 const router = useRouter()
@@ -184,6 +192,12 @@ const registerForm = reactive({
   title: '',
   companyName: ''
 })
+
+const roles = [
+  { label: '学生', value: 'student', icon: 'Reading' },
+  { label: '教师', value: 'teacher', icon: 'User' },
+  { label: '企业', value: 'enterprise', icon: 'OfficeBuilding' }
+]
 
 // 自定义校验：确认密码是否与密码一致
 function validateConfirmPassword(_rule: any, value: string, callback: Function) {
@@ -242,16 +256,17 @@ const registerRules = {
 const registerFormRef = ref<any>(null)
 const loading = ref(false)
 
-/**
- * 角色切换时清空动态字段
- */
-function handleRoleChange() {
-  registerForm.department = ''
-  registerForm.major = ''
-  registerForm.grade = ''
-  registerForm.title = ''
-  registerForm.companyName = ''
-}
+// 角色切换时清空动态字段
+watch(
+  () => registerForm.roleType,
+  () => {
+    registerForm.department = ''
+    registerForm.major = ''
+    registerForm.grade = ''
+    registerForm.title = ''
+    registerForm.companyName = ''
+  }
+)
 
 /**
  * 处理注册
@@ -310,49 +325,168 @@ function goToLogin() {
 }
 </script>
 
+<script lang="ts">
+export default {
+  components: {
+    Reading,
+    TeacherIcon,
+    OfficeBuilding
+  }
+}
+</script>
+
 <style scoped lang="scss">
-.register-page {
-  min-height: 100vh;
+.register-view {
+  width: 100%;
+  padding-bottom: var(--zh-space-4);
+}
+
+.form-header {
+  margin-bottom: var(--zh-space-6);
+
+  .form-title {
+    font-family: var(--zh-font-display);
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--zh-primary);
+    margin: 0 0 var(--zh-space-3) 0;
+  }
+
+  .form-subtitle {
+    margin: 0;
+    font-size: 15px;
+    color: var(--zh-text-secondary);
+    line-height: 1.6;
+  }
+}
+
+.register-form {
+  :deep(.el-form-item__label) {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--zh-text-primary);
+    padding-bottom: var(--zh-space-1);
+  }
+
+  :deep(.el-input__wrapper) {
+    border-radius: var(--zh-radius);
+    box-shadow: 0 0 0 1px var(--zh-border) inset;
+    padding: 4px 16px;
+    transition: all var(--zh-transition-fast);
+
+    &:hover {
+      box-shadow: 0 0 0 1px var(--zh-primary) inset;
+    }
+
+    &.is-focus {
+      box-shadow: 0 0 0 1px var(--zh-primary) inset, 0 0 0 3px var(--zh-primary-soft);
+    }
+  }
+
+  :deep(.el-input__inner) {
+    height: 44px;
+  }
+}
+
+.form-section {
+  background: var(--zh-bg-warm);
+  border: 1px solid var(--zh-border-light);
+  border-radius: var(--zh-radius);
+  padding: var(--zh-space-5);
+  margin-bottom: var(--zh-space-5);
+
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: var(--zh-space-3);
+    font-family: var(--zh-font-display);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--zh-primary);
+    margin: 0 0 var(--zh-space-5) 0;
+    padding-bottom: var(--zh-space-3);
+    border-bottom: 1px solid var(--zh-border-light);
+
+    .section-marker {
+      width: 4px;
+      height: 18px;
+      border-radius: 2px;
+      background: var(--zh-accent);
+    }
+  }
+}
+
+.role-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--zh-space-3);
+}
+
+.role-card {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+  gap: var(--zh-space-2);
+  padding: var(--zh-space-4) var(--zh-space-2);
+  border-radius: var(--zh-radius);
+  border: 1px solid var(--zh-border);
+  background: var(--zh-bg-elevated);
+  color: var(--zh-text-secondary);
+  cursor: pointer;
+  transition: all var(--zh-transition-fast);
 
-  .register-card {
-    width: 480px;
-    border-radius: 12px;
+  &:hover {
+    border-color: var(--zh-primary);
+    color: var(--zh-primary);
+  }
 
-    .register-header {
-      text-align: center;
+  &.active {
+    border-color: var(--zh-primary);
+    background: var(--zh-primary-soft);
+    color: var(--zh-primary);
+    box-shadow: var(--zh-shadow-sm);
+  }
 
-      h2 {
-        margin: 0 0 8px 0;
-        color: #303133;
-        font-size: 24px;
-      }
+  .role-name {
+    font-size: 14px;
+    font-weight: 500;
+  }
+}
 
-      p {
-        margin: 0;
-        color: #909399;
-        font-size: 14px;
-      }
-    }
+.submit-btn {
+  width: 100%;
+  height: 48px;
+  border-radius: var(--zh-radius);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  background: var(--zh-primary);
+  border: none;
+  margin-top: var(--zh-space-2);
+  transition: all var(--zh-transition-fast);
 
-    .register-button {
-      width: 100%;
-      margin-top: 10px;
-    }
+  &:hover {
+    background: var(--zh-secondary);
+    transform: translateY(-1px);
+    box-shadow: var(--zh-shadow-md);
+  }
+}
 
-    .register-tips {
-      margin-top: 20px;
-      text-align: center;
-      color: #909399;
-      font-size: 13px;
+.form-footer {
+  text-align: center;
+  font-size: 14px;
+  color: var(--zh-text-secondary);
+  margin-top: var(--zh-space-4);
 
-      p {
-        margin: 6px 0;
-      }
-    }
+  p {
+    margin: 0;
+  }
+}
+
+@media (max-width: 576px) {
+  .role-cards {
+    grid-template-columns: 1fr;
   }
 }
 </style>

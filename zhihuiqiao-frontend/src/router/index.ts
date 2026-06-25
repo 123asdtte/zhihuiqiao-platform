@@ -56,7 +56,7 @@ const routes: RouteRecordRaw[] = [
         path: 'research/applications',
         name: 'MyApplications',
         component: () => import('@/views/research/MyApplications.vue'),
-        meta: { title: '我的申请', roles: ['student'] }
+        meta: { title: '项目申请', roles: ['student', 'admin'] }
       },
       {
         path: 'research/project/publish',

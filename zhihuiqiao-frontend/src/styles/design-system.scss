@@ -1,0 +1,265 @@
+/**
+ * 智汇桥设计系统
+ * 设计方向：Refined Academic Modernism（精致学术现代主义）
+ * 特点：温暖的纸质感背景、深邃藏青主色、学者气质衬线标题、大量留白、非对称构图
+ */
+
+// ==================== 色彩系统 ====================
+:root {
+  // 主色：深邃藏青，象征学术严谨与信任
+  --zh-primary: #1a365d;
+  --zh-primary-light: #234876;
+  --zh-primary-lighter: #e8eef5;
+  --zh-primary-soft: rgba(26, 54, 93, 0.08);
+
+  // 强调色：暖金，象征灵感与成果
+  --zh-accent: #c9a227;
+  --zh-accent-light: #e0bc4a;
+  --zh-accent-soft: rgba(201, 162, 39, 0.12);
+
+  // 辅助色
+  --zh-secondary: #3b5998;
+  --zh-success: #2d7d46;
+  --zh-warning: #c77a24;
+  --zh-danger: #b5423b;
+  --zh-info: #3b82a4;
+
+  // 中性色
+  --zh-bg: #fafaf8;
+  --zh-bg-elevated: #ffffff;
+  --zh-bg-warm: #f5f3ef;
+  --zh-text-primary: #1f2937;
+  --zh-text-secondary: #4b5563;
+  --zh-text-tertiary: #9ca3af;
+  --zh-border: #e5e2dc;
+  --zh-border-light: #f0ede7;
+
+  // 阴影：柔和多层，营造纸张堆叠感
+  --zh-shadow-sm: 0 1px 2px rgba(26, 54, 93, 0.04), 0 1px 3px rgba(26, 54, 93, 0.04);
+  --zh-shadow: 0 4px 6px -1px rgba(26, 54, 93, 0.06), 0 2px 4px -1px rgba(26, 54, 93, 0.04);
+  --zh-shadow-md: 0 10px 15px -3px rgba(26, 54, 93, 0.08), 0 4px 6px -2px rgba(26, 54, 93, 0.04);
+  --zh-shadow-lg: 0 20px 25px -5px rgba(26, 54, 93, 0.1), 0 10px 10px -5px rgba(26, 54, 93, 0.04);
+
+  // 间距系统
+  --zh-space-1: 4px;
+  --zh-space-2: 8px;
+  --zh-space-3: 12px;
+  --zh-space-4: 16px;
+  --zh-space-5: 20px;
+  --zh-space-6: 24px;
+  --zh-space-8: 32px;
+  --zh-space-10: 40px;
+  --zh-space-12: 48px;
+  --zh-space-16: 64px;
+
+  // 圆角
+  --zh-radius-sm: 6px;
+  --zh-radius: 12px;
+  --zh-radius-lg: 16px;
+  --zh-radius-xl: 24px;
+
+  // 字体
+  --zh-font-display: 'Noto Serif SC', 'Source Han Serif SC', 'STSong', 'SimSun', serif;
+  --zh-font-body: 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', sans-serif;
+  --zh-font-mono: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+
+  // 过渡
+  --zh-transition-fast: 150ms ease;
+  --zh-transition: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --zh-transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+// ==================== 字体引入 ====================
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&display=swap');
+
+// ==================== 基础重置 ====================
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+  font-family: var(--zh-font-body);
+  color: var(--zh-text-primary);
+  background-color: var(--zh-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// 纸质感背景纹理
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  opacity: 0.4;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  z-index: -1;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+// ==================== 滚动条 ====================
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--zh-border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--zh-text-tertiary);
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+// ==================== 通用工具类 ====================
+.zh-page {
+  padding: var(--zh-space-6);
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+.zh-page-title {
+  font-family: var(--zh-font-display);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--zh-primary);
+  margin-bottom: var(--zh-space-2);
+  letter-spacing: -0.02em;
+}
+
+.zh-page-subtitle {
+  color: var(--zh-text-secondary);
+  font-size: 15px;
+  margin-bottom: var(--zh-space-6);
+}
+
+.zh-section-title {
+  font-family: var(--zh-font-display);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--zh-primary);
+  margin-bottom: var(--zh-space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--zh-space-3);
+
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--zh-border) 0%, transparent 100%);
+  }
+}
+
+.zh-card {
+  background: var(--zh-bg-elevated);
+  border-radius: var(--zh-radius);
+  box-shadow: var(--zh-shadow);
+  border: 1px solid var(--zh-border-light);
+  transition: box-shadow var(--zh-transition), transform var(--zh-transition);
+
+  &:hover {
+    box-shadow: var(--zh-shadow-md);
+  }
+}
+
+.zh-btn-primary {
+  background: var(--zh-primary) !important;
+  border-color: var(--zh-primary) !important;
+  color: #fff !important;
+  border-radius: var(--zh-radius-sm) !important;
+  font-weight: 500;
+
+  &:hover {
+    background: var(--zh-primary-light) !important;
+    border-color: var(--zh-primary-light) !important;
+  }
+}
+
+.zh-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--zh-primary-soft);
+  color: var(--zh-primary);
+}
+
+.zh-tag-accent {
+  background: var(--zh-accent-soft);
+  color: #8a6d1b;
+}
+
+// ==================== Element Plus 覆盖 ====================
+.el-card {
+  border-radius: var(--zh-radius) !important;
+  border: 1px solid var(--zh-border-light) !important;
+  box-shadow: var(--zh-shadow) !important;
+  background: var(--zh-bg-elevated) !important;
+}
+
+.el-card__header {
+  border-bottom: 1px solid var(--zh-border-light) !important;
+  padding: var(--zh-space-4) var(--zh-space-5) !important;
+  font-family: var(--zh-font-display);
+  font-weight: 600;
+  color: var(--zh-primary);
+}
+
+.el-button {
+  border-radius: var(--zh-radius-sm) !important;
+  font-weight: 500;
+  transition: all var(--zh-transition-fast) !important;
+}
+
+.el-button--primary {
+  --el-button-bg-color: var(--zh-primary);
+  --el-button-border-color: var(--zh-primary);
+  --el-button-hover-bg-color: var(--zh-primary-light);
+  --el-button-hover-border-color: var(--zh-primary-light);
+}
+
+.el-input__wrapper,
+.el-textarea__inner {
+  border-radius: var(--zh-radius-sm) !important;
+  box-shadow: 0 0 0 1px var(--zh-border) inset !important;
+}
+
+.el-input__wrapper.is-focus {
+  box-shadow: 0 0 0 1px var(--zh-primary) inset !important;
+}
+
+.el-menu {
+  border-right: none !important;
+}
+
+.el-table {
+  --el-table-border-color: var(--zh-border-light);
+  --el-table-header-bg-color: var(--zh-bg-warm);
+  --el-table-header-text-color: var(--zh-primary);
+}
+
+.el-table th.el-table__cell {
+  font-family: var(--zh-font-display);
+  font-weight: 600;
+}

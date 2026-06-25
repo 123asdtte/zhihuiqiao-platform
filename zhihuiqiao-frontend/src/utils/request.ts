@@ -4,6 +4,9 @@ import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import router from '@/router'
 
+// 防止多个并发请求同时触发登出导致页面反复跳转
+let isLoggingOut = false
+
 const service: AxiosInstance = axios.create({
   // 基础 URL 由环境变量控制，默认为 '/'。
   // 各 API 模块需在 url 中显式写出完整前缀（如 /api/resource/list、/auth/login），
@@ -41,10 +44,17 @@ service.interceptors.response.use(
     if (error.response) {
       const { status, data } = error.response
       if (status === 401) {
-        const userStore = useUserStore()
-        userStore.logout()
-        router.push('/login')
-        ElMessage.error('登录已过期，请重新登录')
+        if (!isLoggingOut) {
+          isLoggingOut = true
+          const userStore = useUserStore()
+          userStore.logout()
+          router.push('/login')
+          ElMessage.error('登录已过期，请重新登录')
+          // 给出跳转时间后重置标志，避免后续正常登录被拦截
+          setTimeout(() => {
+            isLoggingOut = false
+          }, 3000)
+        }
       } else if (status === 403) {
         ElMessage.error('没有权限访问')
       } else if (status === 404) {
