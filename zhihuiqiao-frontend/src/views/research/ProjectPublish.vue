@@ -76,11 +76,8 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="项目状态" prop="status">
-              <el-select v-model="form.status" placeholder="请选择项目状态" style="width: 100%">
-                <el-option label="招募中" value="recruiting" />
-                <el-option label="进行中" value="ongoing" />
-              </el-select>
+            <el-form-item label="项目状态">
+              <el-tag type="warning">提交后待管理员审核</el-tag>
             </el-form-item>
           </el-col>
         </el-row>
@@ -151,7 +148,7 @@ const form = reactive({
   startDate: '',
   endDate: '',
   maxMembers: 5,
-  status: 'recruiting'
+  status: 'pending_audit'
 })
 
 const rules = {
@@ -180,7 +177,7 @@ async function handleSubmit() {
       }
       const res: any = await publishProject(submitData)
       if (res.code === 200) {
-        ElMessage.success('项目发布成功')
+        ElMessage.success('项目已提交，等待管理员审核通过后将自动上架')
         router.push('/app/research/projects')
       } else {
         ElMessage.error(res.message || '发布失败')

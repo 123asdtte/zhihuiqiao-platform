@@ -80,9 +80,9 @@ public class ResearchController {
         String roleType = getCurrentRoleType();
         project.setPublisherType(roleType);
 
-        // 设置默认值：未指定状态时默认为招募中
+        // 设置默认值：未指定状态时默认为待审核，管理员审核通过后才变为招募中
         if (!StringUtils.hasText(project.getStatus())) {
-            project.setStatus("recruiting");
+            project.setStatus("pending_audit");
         }
         if (project.getCurrentMembers() == null) {
             project.setCurrentMembers(1);
@@ -138,7 +138,7 @@ public class ResearchController {
         if (StringUtils.hasText(status)) {
             wrapper.eq(ResearchProject::getStatus, status);
         } else {
-            // 默认查询招募中或进行中的项目
+            // 默认只查询已审核通过的项目（招募中/进行中），待审核内容不在列表展示
             wrapper.in(ResearchProject::getStatus, List.of("recruiting", "ongoing"));
         }
 
@@ -344,7 +344,8 @@ public class ResearchController {
         if (authentication != null && authentication.getCredentials() instanceof Long userId) {
             demand.setEnterpriseId(userId);
         }
-        demand.setStatus("open");
+        // 新发布的企业需求默认进入待审核状态，管理员审核通过后才对外开放
+        demand.setStatus("pending_audit");
         if (demand.getViews() == null) {
             demand.setViews(0);
         }
@@ -370,6 +371,9 @@ public class ResearchController {
         }
         if (StringUtils.hasText(status)) {
             wrapper.eq(EnterpriseDemand::getStatus, status);
+        } else {
+            // 默认只查询已审核通过（进行中）的企业需求，待审核内容不在列表展示
+            wrapper.eq(EnterpriseDemand::getStatus, "open");
         }
 
         if (StringUtils.hasText(keyword)) {

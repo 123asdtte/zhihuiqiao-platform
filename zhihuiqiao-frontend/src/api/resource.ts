@@ -91,6 +91,17 @@ export function auditBooking(id: number, status: string, replyMessage?: string) 
 }
 
 /**
+ * 取消资源预约
+ * @param id 预约ID
+ */
+export function cancelBooking(id: number) {
+  return request({
+    url: `/api/resource/booking/${id}/cancel`,
+    method: 'put'
+  })
+}
+
+/**
  * 归还资源
  * @param id 预约ID
  */

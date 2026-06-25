@@ -69,7 +69,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getMyBookings, returnResource } from '@/api/resource'
+import { getMyBookings, returnResource, cancelBooking } from '@/api/resource'
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
@@ -169,7 +169,7 @@ async function handleReturn(id: number) {
 }
 
 /**
- * 取消预约（前端模拟，后端未提供取消接口时仅作提示）
+ * 取消预约申请
  */
 async function handleCancel(id: number) {
   try {
@@ -178,9 +178,13 @@ async function handleCancel(id: number) {
       cancelButtonText: '取消',
       type: 'warning'
     })
-    // 当前后端未单独提供取消接口，可调用归还或拒绝逻辑；这里仅作前端状态演示
-    ElMessage.info('取消功能需后端提供取消接口，当前版本暂不处理')
-    console.log('取消预约', id)
+    const res: any = await cancelBooking(id)
+    if (res.code === 200) {
+      ElMessage.success('预约已取消')
+      loadMyBookings()
+    } else {
+      ElMessage.error(res.message || '取消失败')
+    }
   } catch (error) {
     if (error !== 'cancel') {
       console.error(error)

@@ -47,8 +47,9 @@ public class LearningController {
         if (authentication != null && authentication.getCredentials() instanceof Long userId) {
             resource.setPublisherId(userId);
         }
+        // 新发布的学习资源默认进入待审核状态（status=2），管理员审核通过（status=1）后才展示
         if (resource.getStatus() == null) {
-            resource.setStatus(1);
+            resource.setStatus(2);
         }
         if (resource.getViews() == null) {
             resource.setViews(0);
@@ -75,6 +76,7 @@ public class LearningController {
 
         Page<LearningResource> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<LearningResource> wrapper = new LambdaQueryWrapper<>();
+        // 默认只查询已审核通过（status=1）的学习资源，待审核（status=2）内容不在列表展示
         wrapper.eq(LearningResource::getStatus, 1)
                 .eq(LearningResource::getDeleted, 0)
                 .orderByDesc(LearningResource::getCreateTime);
@@ -105,6 +107,19 @@ public class LearningController {
     public Result<LearningResource> getResourceById(@PathVariable Long id) {
         LearningResource resource = learningResourceService.getById(id);
         if (resource != null) {
+            // 未审核通过的资源只有管理员或发布者本人可以查看详情
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            Long currentUserId = authentication != null && authentication.getCredentials() instanceof Long uid ? uid : null;
+            String currentRole = authentication != null && authentication.isAuthenticated()
+                    ? authentication.getAuthorities().stream()
+                    .findFirst()
+                    .map(auth -> auth.getAuthority().replace("ROLE_", "").toLowerCase())
+                    .orElse("")
+                    : "";
+            if (resource.getStatus() != null && resource.getStatus() != 1
+                    && !"admin".equals(currentRole) && !resource.getPublisherId().equals(currentUserId)) {
+                return Result.error("该资源暂未通过审核");
+            }
             resource.setViews(resource.getViews() + 1);
             learningResourceService.updateById(resource);
         }

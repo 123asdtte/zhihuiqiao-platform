@@ -1,50 +1,48 @@
 <template>
-  <div class="audit-manage-page">
+  <div class="audit-manage-page zh-page">
     <!-- 页面标题区域 -->
-    <div class="page-header">
-      <h2>内容审核</h2>
-      <p>对平台发布的科研项目、企业需求、闲置资源与学习资源进行上下架管理</p>
+    <div class="page-header-section">
+      <div class="page-header-content">
+        <h1 class="zh-page-title">内容审核</h1>
+        <p class="zh-page-subtitle">对平台发布的科研项目、企业需求、闲置资源与学习资源进行审核管理</p>
+      </div>
     </div>
 
-    <!-- 顶部统计卡片：展示四类内容数量 -->
-    <el-row :gutter="20" class="stat-row">
-      <el-col :xs="24" :sm="12" :md="6">
-        <el-card class="stat-card" shadow="hover">
-          <div class="stat-header">
-            <el-icon class="stat-icon" color="#409eff"><Search /></el-icon>
-            <span class="stat-label">科研项目</span>
-          </div>
-          <div class="stat-value">{{ stats.projectCount }}</div>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :sm="12" :md="6">
-        <el-card class="stat-card" shadow="hover">
-          <div class="stat-header">
-            <el-icon class="stat-icon" color="#67c23a"><OfficeBuilding /></el-icon>
-            <span class="stat-label">企业需求</span>
-          </div>
-          <div class="stat-value">{{ stats.demandCount }}</div>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :sm="12" :md="6">
-        <el-card class="stat-card" shadow="hover">
-          <div class="stat-header">
-            <el-icon class="stat-icon" color="#e6a23c"><Box /></el-icon>
-            <span class="stat-label">闲置资源</span>
-          </div>
-          <div class="stat-value">{{ stats.resourceCount }}</div>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :sm="12" :md="6">
-        <el-card class="stat-card" shadow="hover">
-          <div class="stat-header">
-            <el-icon class="stat-icon" color="#f56c6c"><Reading /></el-icon>
-            <span class="stat-label">学习资源</span>
-          </div>
-          <div class="stat-value">{{ stats.learningResourceCount }}</div>
-        </el-card>
-      </el-col>
-    </el-row>
+    <!-- 顶部统计卡片：展示四类内容待审核数量 -->
+    <div class="stats-section">
+      <div class="stat-card" :class="{ active: activeTab === 'project' }" @click="activeTab = 'project'">
+        <div class="stat-header">
+          <el-icon class="stat-icon"><Search /></el-icon>
+          <span class="stat-label">科研项目</span>
+        </div>
+        <div class="stat-value">{{ stats.projectPendingCount }}</div>
+        <div class="stat-hint">待审核</div>
+      </div>
+      <div class="stat-card" :class="{ active: activeTab === 'demand' }" @click="activeTab = 'demand'">
+        <div class="stat-header">
+          <el-icon class="stat-icon"><OfficeBuilding /></el-icon>
+          <span class="stat-label">企业需求</span>
+        </div>
+        <div class="stat-value">{{ stats.demandPendingCount }}</div>
+        <div class="stat-hint">待审核</div>
+      </div>
+      <div class="stat-card" :class="{ active: activeTab === 'resource' }" @click="activeTab = 'resource'">
+        <div class="stat-header">
+          <el-icon class="stat-icon"><Box /></el-icon>
+          <span class="stat-label">闲置资源</span>
+        </div>
+        <div class="stat-value">{{ stats.resourcePendingCount }}</div>
+        <div class="stat-hint">待审核</div>
+      </div>
+      <div class="stat-card" :class="{ active: activeTab === 'learning' }" @click="activeTab = 'learning'">
+        <div class="stat-header">
+          <el-icon class="stat-icon"><Reading /></el-icon>
+          <span class="stat-label">学习资源</span>
+        </div>
+        <div class="stat-value">{{ stats.learningPendingCount }}</div>
+        <div class="stat-hint">待审核</div>
+      </div>
+    </div>
 
     <!-- 标签页内容区 -->
     <el-card class="tabs-card" shadow="never">
@@ -56,9 +54,22 @@
               v-model="tabState.project.keyword"
               placeholder="搜索项目名称"
               clearable
-              style="width: 260px"
+              style="width: 220px"
               @keyup.enter="handleSearch('project')"
             />
+            <el-select
+              v-model="tabState.project.status"
+              placeholder="全部状态"
+              clearable
+              style="width: 140px"
+              @change="handleSearch('project')"
+            >
+              <el-option label="待审核" value="pending_audit" />
+              <el-option label="招募中" value="recruiting" />
+              <el-option label="进行中" value="ongoing" />
+              <el-option label="已完成" value="completed" />
+              <el-option label="已关闭" value="closed" />
+            </el-select>
             <el-button type="primary" @click="handleSearch('project')">搜索</el-button>
           </div>
           <el-table :data="tabState.project.list" stripe border v-loading="tabState.project.loading" style="width: 100%">
@@ -74,8 +85,14 @@
             <el-table-column prop="createTime" label="创建时间" min-width="170" />
             <el-table-column label="操作" width="180" fixed="right">
               <template #default="{ row }">
-                <el-button type="success" link size="small" @click="handleAudit('project', row, 'pass')">通过</el-button>
-                <el-button type="danger" link size="small" @click="handleAudit('project', row, 'close')">关闭</el-button>
+                <template v-if="row.status === 'pending_audit'">
+                  <el-button type="success" link size="small" @click="handleAudit('project', row, 'pass')">通过</el-button>
+                  <el-button type="danger" link size="small" @click="handleAudit('project', row, 'reject')">拒绝</el-button>
+                </template>
+                <template v-else-if="row.status === 'recruiting' || row.status === 'ongoing' || row.status === 'open' || row.status === 'available'">
+                  <el-button type="danger" link size="small" @click="handleAudit('project', row, 'close')">关闭</el-button>
+                </template>
+                <span v-else class="no-action">--</span>
               </template>
             </el-table-column>
           </el-table>
@@ -99,9 +116,20 @@
               v-model="tabState.demand.keyword"
               placeholder="搜索需求标题"
               clearable
-              style="width: 260px"
+              style="width: 220px"
               @keyup.enter="handleSearch('demand')"
             />
+            <el-select
+              v-model="tabState.demand.status"
+              placeholder="全部状态"
+              clearable
+              style="width: 140px"
+              @change="handleSearch('demand')"
+            >
+              <el-option label="待审核" value="pending_audit" />
+              <el-option label="进行中" value="open" />
+              <el-option label="已关闭" value="closed" />
+            </el-select>
             <el-button type="primary" @click="handleSearch('demand')">搜索</el-button>
           </div>
           <el-table :data="tabState.demand.list" stripe border v-loading="tabState.demand.loading" style="width: 100%">
@@ -117,8 +145,14 @@
             <el-table-column prop="createTime" label="创建时间" min-width="170" />
             <el-table-column label="操作" width="180" fixed="right">
               <template #default="{ row }">
-                <el-button type="success" link size="small" @click="handleAudit('demand', row, 'pass')">通过</el-button>
-                <el-button type="danger" link size="small" @click="handleAudit('demand', row, 'close')">关闭</el-button>
+                <template v-if="row.status === 'pending_audit'">
+                  <el-button type="success" link size="small" @click="handleAudit('demand', row, 'pass')">通过</el-button>
+                  <el-button type="danger" link size="small" @click="handleAudit('demand', row, 'reject')">拒绝</el-button>
+                </template>
+                <template v-else-if="row.status === 'open'">
+                  <el-button type="danger" link size="small" @click="handleAudit('demand', row, 'close')">关闭</el-button>
+                </template>
+                <span v-else class="no-action">--</span>
               </template>
             </el-table-column>
           </el-table>
@@ -142,9 +176,21 @@
               v-model="tabState.resource.keyword"
               placeholder="搜索资源名称"
               clearable
-              style="width: 260px"
+              style="width: 220px"
               @keyup.enter="handleSearch('resource')"
             />
+            <el-select
+              v-model="tabState.resource.status"
+              placeholder="全部状态"
+              clearable
+              style="width: 140px"
+              @change="handleSearch('resource')"
+            >
+              <el-option label="待审核" value="pending_audit" />
+              <el-option label="可预约" value="available" />
+              <el-option label="已租出" value="rented" />
+              <el-option label="已下架" value="unavailable" />
+            </el-select>
             <el-button type="primary" @click="handleSearch('resource')">搜索</el-button>
           </div>
           <el-table :data="tabState.resource.list" stripe border v-loading="tabState.resource.loading" style="width: 100%">
@@ -160,8 +206,14 @@
             <el-table-column prop="createTime" label="创建时间" min-width="170" />
             <el-table-column label="操作" width="180" fixed="right">
               <template #default="{ row }">
-                <el-button type="success" link size="small" @click="handleAudit('resource', row, 'pass')">上架</el-button>
-                <el-button type="danger" link size="small" @click="handleAudit('resource', row, 'close')">下架</el-button>
+                <template v-if="row.status === 'pending_audit'">
+                  <el-button type="success" link size="small" @click="handleAudit('resource', row, 'pass')">通过</el-button>
+                  <el-button type="danger" link size="small" @click="handleAudit('resource', row, 'reject')">拒绝</el-button>
+                </template>
+                <template v-else-if="row.status === 'available' || row.status === 'rented' || row.status === 'booked'">
+                  <el-button type="danger" link size="small" @click="handleAudit('resource', row, 'close')">下架</el-button>
+                </template>
+                <span v-else class="no-action">--</span>
               </template>
             </el-table-column>
           </el-table>
@@ -185,9 +237,21 @@
               v-model="tabState.learning.keyword"
               placeholder="搜索资源标题"
               clearable
-              style="width: 260px"
+              style="width: 220px"
               @keyup.enter="handleSearch('learning')"
             />
+            <el-select
+              v-model="tabState.learning.status"
+              placeholder="全部状态"
+              clearable
+              style="width: 140px"
+              @change="handleSearch('learning')"
+            >
+              <el-option label="待审核" :value="2" />
+              <el-option label="已上架" :value="1" />
+              <el-option label="已下架" :value="0" />
+              <el-option label="已拒绝" :value="-1" />
+            </el-select>
             <el-button type="primary" @click="handleSearch('learning')">搜索</el-button>
           </div>
           <el-table :data="tabState.learning.list" stripe border v-loading="tabState.learning.loading" style="width: 100%">
@@ -203,8 +267,14 @@
             <el-table-column prop="createTime" label="创建时间" min-width="170" />
             <el-table-column label="操作" width="180" fixed="right">
               <template #default="{ row }">
-                <el-button type="success" link size="small" @click="handleAudit('learning', row, 'pass')">上架</el-button>
-                <el-button type="danger" link size="small" @click="handleAudit('learning', row, 'close')">下架</el-button>
+                <template v-if="row.status === 2">
+                  <el-button type="success" link size="small" @click="handleAudit('learning', row, 'pass')">通过</el-button>
+                  <el-button type="danger" link size="small" @click="handleAudit('learning', row, 'reject')">拒绝</el-button>
+                </template>
+                <template v-else-if="row.status === 1">
+                  <el-button type="danger" link size="small" @click="handleAudit('learning', row, 'close')">下架</el-button>
+                </template>
+                <span v-else class="no-action">--</span>
               </template>
             </el-table-column>
           </el-table>
@@ -249,6 +319,7 @@ interface TabItem {
   list: any[]
   loading: boolean
   keyword: string
+  status: string | number | undefined
   pagination: {
     pageNum: number
     pageSize: number
@@ -263,9 +334,13 @@ interface TabItem {
  */
 const stats = reactive({
   projectCount: 0,
+  projectPendingCount: 0,
   demandCount: 0,
+  demandPendingCount: 0,
   resourceCount: 0,
-  learningResourceCount: 0
+  resourcePendingCount: 0,
+  learningResourceCount: 0,
+  learningPendingCount: 0
 })
 
 // ==================== 标签页状态 ====================
@@ -283,24 +358,28 @@ const tabState = reactive<Record<TabType, TabItem>>({
     list: [],
     loading: false,
     keyword: '',
+    status: 'pending_audit',
     pagination: { pageNum: 1, pageSize: 10, total: 0 }
   },
   demand: {
     list: [],
     loading: false,
     keyword: '',
+    status: 'pending_audit',
     pagination: { pageNum: 1, pageSize: 10, total: 0 }
   },
   resource: {
     list: [],
     loading: false,
     keyword: '',
+    status: 'pending_audit',
     pagination: { pageNum: 1, pageSize: 10, total: 0 }
   },
   learning: {
     list: [],
     loading: false,
     keyword: '',
+    status: 2,
     pagination: { pageNum: 1, pageSize: 10, total: 0 }
   }
 })
@@ -336,26 +415,35 @@ const updateApiMap: Record<TabType, any> = {
  */
 function statusText(type: TabType, status: string | number) {
   const projectMap: Record<string, string> = {
+    pending_audit: '待审核',
     recruiting: '招募中',
     ongoing: '进行中',
     completed: '已完成',
-    closed: '已关闭'
+    closed: '已关闭',
+    rejected: '已拒绝'
   }
   const demandMap: Record<string, string> = {
+    pending_audit: '待审核',
     open: '进行中',
     closed: '已关闭',
-    pending: '待审核'
+    rejected: '已拒绝'
   }
   const resourceMap: Record<string, string> = {
+    pending_audit: '待审核',
     available: '可预约',
     unavailable: '已下架',
-    booked: '已预约'
+    rented: '已租出',
+    booked: '已预约',
+    rejected: '已拒绝'
   }
 
   if (type === 'project') return projectMap[status as string] || (status as string)
   if (type === 'demand') return demandMap[status as string] || (status as string)
   if (type === 'resource') return resourceMap[status as string] || (status as string)
-  if (type === 'learning') return status === 1 ? '已上架' : '已下架'
+  if (type === 'learning') {
+    const learningMap: Record<number, string> = { 2: '待审核', 1: '已上架', 0: '已下架', '-1': '已拒绝' }
+    return learningMap[status as number] || String(status)
+  }
   return String(status)
 }
 
@@ -367,31 +455,38 @@ function statusText(type: TabType, status: string | number) {
 function statusTagType(type: TabType, status: string | number) {
   if (type === 'project') {
     const map: Record<string, any> = {
+      pending_audit: 'warning',
       recruiting: 'success',
       ongoing: 'primary',
       completed: 'info',
-      closed: 'danger'
+      closed: 'danger',
+      rejected: 'info'
     }
     return map[status as string] || 'info'
   }
   if (type === 'demand') {
     const map: Record<string, any> = {
+      pending_audit: 'warning',
       open: 'success',
       closed: 'danger',
-      pending: 'warning'
+      rejected: 'info'
     }
     return map[status as string] || 'info'
   }
   if (type === 'resource') {
     const map: Record<string, any> = {
+      pending_audit: 'warning',
       available: 'success',
       unavailable: 'danger',
-      booked: 'warning'
+      rented: 'primary',
+      booked: 'warning',
+      rejected: 'info'
     }
     return map[status as string] || 'info'
   }
   if (type === 'learning') {
-    return status === 1 ? 'success' : 'danger'
+    const map: Record<number, any> = { 2: 'warning', 1: 'success', 0: 'danger', '-1': 'info' }
+    return map[status as number] || 'info'
   }
   return 'info'
 }
@@ -421,11 +516,15 @@ async function loadList(type: TabType) {
   const state = tabState[type]
   state.loading = true
   try {
-    const res: any = await fetchApiMap[type]({
+    const params: any = {
       pageNum: state.pagination.pageNum,
       pageSize: state.pagination.pageSize,
       keyword: state.keyword
-    })
+    }
+    if (state.status !== undefined && state.status !== '') {
+      params.status = state.status
+    }
+    const res: any = await fetchApiMap[type](params)
     state.list = res.data?.records || []
     state.pagination.total = res.data?.total || 0
   } catch (error) {
@@ -480,24 +579,24 @@ function handleSizeChange(type: TabType, size: number) {
 }
 
 /**
- * 上下架/通过关闭操作
+ * 审核/上下架/关闭/拒绝操作
  * @param type 标签页类型
  * @param row 当前行数据
- * @param action 操作类型：pass 表示上架/通过，close 表示下架/关闭
+ * @param action 操作类型：pass 通过，reject 拒绝，close 关闭/下架
  */
-async function handleAudit(type: TabType, row: any, action: 'pass' | 'close') {
+async function handleAudit(type: TabType, row: any, action: 'pass' | 'reject' | 'close') {
   // 根据类型与动作确定目标状态
-  const statusMap: Record<TabType, { pass: string | number; close: string | number }> = {
-    project: { pass: 'recruiting', close: 'closed' },
-    demand: { pass: 'open', close: 'closed' },
-    resource: { pass: 'available', close: 'unavailable' },
-    learning: { pass: 1, close: 0 }
+  const statusMap: Record<TabType, { pass: string | number; reject: string | number; close: string | number }> = {
+    project: { pass: 'recruiting', reject: 'rejected', close: 'closed' },
+    demand: { pass: 'open', reject: 'rejected', close: 'closed' },
+    resource: { pass: 'available', reject: 'rejected', close: 'unavailable' },
+    learning: { pass: 1, reject: -1, close: 0 }
   }
   const targetStatus = statusMap[type][action]
 
   try {
     await updateApiMap[type](row.id, targetStatus)
-    ElMessage.success(action === 'pass' ? '已通过/上架' : '已关闭/下架')
+    ElMessage.success(action === 'pass' ? '已通过' : action === 'reject' ? '已拒绝' : '已关闭/下架')
     // 操作成功后刷新当前标签页数据，并重新加载统计
     loadList(type)
     loadStats()
@@ -517,51 +616,69 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .audit-manage-page {
-  padding: 20px;
-
-  .page-header {
-    margin-bottom: 20px;
-
-    h2 {
-      margin: 0 0 8px 0;
-      color: #303133;
-    }
-
-    p {
-      margin: 0;
-      color: #909399;
-      font-size: 14px;
-    }
+  .page-header-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: var(--zh-space-6);
   }
 
-  .stat-row {
-    margin-bottom: 20px;
+  .stats-section {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--zh-space-5);
+    margin-bottom: var(--zh-space-6);
+  }
 
-    .stat-card {
-      margin-bottom: 20px;
-      padding: 12px;
+  .stat-card {
+    background: var(--zh-bg-elevated);
+    border: 1px solid var(--zh-border-light);
+    border-radius: var(--zh-radius);
+    padding: var(--zh-space-5);
+    cursor: pointer;
+    box-shadow: var(--zh-shadow);
+    transition: all var(--zh-transition);
 
-      .stat-header {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 12px;
+    &:hover,
+    &.active {
+      border-color: var(--zh-primary-soft);
+      box-shadow: var(--zh-shadow-md);
+      transform: translateY(-2px);
+    }
 
-        .stat-icon {
-          font-size: 24px;
-        }
+    &.active {
+      background: var(--zh-primary-soft);
+    }
 
-        .stat-label {
-          color: #909399;
-          font-size: 14px;
-        }
+    .stat-header {
+      display: flex;
+      align-items: center;
+      gap: var(--zh-space-2);
+      margin-bottom: var(--zh-space-3);
+
+      .stat-icon {
+        font-size: 24px;
+        color: var(--zh-primary);
       }
 
-      .stat-value {
-        font-size: 28px;
-        font-weight: 700;
-        color: #303133;
+      .stat-label {
+        color: var(--zh-text-secondary);
+        font-size: 14px;
       }
+    }
+
+    .stat-value {
+      font-family: var(--zh-font-display);
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--zh-primary);
+      line-height: 1.2;
+    }
+
+    .stat-hint {
+      font-size: 12px;
+      color: var(--zh-text-tertiary);
+      margin-top: var(--zh-space-1);
     }
   }
 
@@ -569,15 +686,32 @@ onMounted(() => {
     .tab-toolbar {
       display: flex;
       align-items: center;
-      gap: 12px;
-      margin-bottom: 16px;
+      gap: var(--zh-space-3);
+      margin-bottom: var(--zh-space-4);
     }
 
     .pagination-wrapper {
       display: flex;
       justify-content: flex-end;
-      margin-top: 16px;
+      margin-top: var(--zh-space-4);
     }
+  }
+
+  .no-action {
+    color: var(--zh-text-tertiary);
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .audit-manage-page .stats-section {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 576px) {
+  .audit-manage-page .stats-section {
+    grid-template-columns: 1fr;
   }
 }
 </style>

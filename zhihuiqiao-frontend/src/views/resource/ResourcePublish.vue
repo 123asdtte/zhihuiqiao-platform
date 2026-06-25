@@ -61,12 +61,8 @@
         </el-row>
 
         <el-form-item label="资源图片" prop="images">
-          <el-input
-            v-model="form.images"
-            type="textarea"
-            :rows="2"
-            placeholder="请输入图片 URL，多个 URL 用英文逗号分隔（可选）"
-          />
+          <ImageUpload v-model="form.images" multiple :max-count="6" />
+          <div class="form-tip">最多上传 6 张资源图片，首张将作为封面展示</div>
         </el-form-item>
 
         <el-form-item label="资源描述" prop="description">
@@ -108,6 +104,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { publishResource } from '@/api/resource'
+import ImageUpload from '@/components/ImageUpload.vue'
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
@@ -124,7 +121,7 @@ const form = reactive({
   resourceName: '',
   resourceType: '',
   description: '',
-  images: '',
+  images: [] as string[],
   location: '',
   originalPrice: 0,
   rentalPrice: 0,
@@ -168,7 +165,9 @@ async function handleSubmit() {
         ...form,
         ownerId: userStore.userInfo.id,
         originalPrice: form.originalPrice || 0,
-        rentalPrice: form.rentalPrice || 0
+        rentalPrice: form.rentalPrice || 0,
+        // 将图片数组转为逗号分隔字符串，适配数据库字段
+        images: form.images && form.images.length > 0 ? form.images.join(',') : ''
       }
       const res: any = await publishResource(submitData)
       if (res.code === 200) {

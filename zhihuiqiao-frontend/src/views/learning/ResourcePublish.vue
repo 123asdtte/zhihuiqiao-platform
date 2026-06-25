@@ -52,22 +52,15 @@
           </el-select>
         </el-form-item>
 
-        <!-- 封面 URL -->
-        <el-form-item label="封面 URL" prop="coverUrl">
-          <el-input
-            v-model="form.coverUrl"
-            placeholder="请输入资源封面图片 URL（可选）"
-            clearable
-          />
+        <!-- 封面图片 -->
+        <el-form-item label="封面图片" prop="coverUrl">
+          <ImageUpload v-model="form.coverUrl" />
+          <div class="form-tip">建议上传 16:9 比例封面图，不上传则使用默认封面</div>
         </el-form-item>
 
-        <!-- 内容链接 -->
-        <el-form-item label="内容链接" prop="contentUrl">
-          <el-input
-            v-model="form.contentUrl"
-            placeholder="请输入资源内容链接（可选）"
-            clearable
-          />
+        <!-- 内容附件 -->
+        <el-form-item label="内容附件" prop="contentUrl">
+          <FileUpload v-model="form.contentUrl" />
         </el-form-item>
 
         <!-- 资源描述 -->
@@ -100,6 +93,8 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { publishLearningResource } from '@/api/learning'
+import ImageUpload from '@/components/ImageUpload.vue'
+import FileUpload from '@/components/FileUpload.vue'
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()

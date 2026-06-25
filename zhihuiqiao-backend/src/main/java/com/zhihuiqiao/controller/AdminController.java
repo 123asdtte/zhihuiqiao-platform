@@ -14,6 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -108,16 +109,37 @@ public class AdminController {
     // ==================== 内容审核 ====================
 
     /**
-     * 查询待审核内容统计
+     * 查询内容统计：分别返回总数与待审核数量
      */
     @Operation(summary = "查询各类内容统计")
     @GetMapping("/audit/stats")
     public Result<Map<String, Object>> getAuditStats() {
         Map<String, Object> stats = new HashMap<>();
+
+        // 科研项目统计
+        LambdaQueryWrapper<ResearchProject> projectWrapper = new LambdaQueryWrapper<>();
+        projectWrapper.eq(ResearchProject::getStatus, "pending_audit");
+        stats.put("projectPendingCount", researchProjectService.count(projectWrapper));
         stats.put("projectCount", researchProjectService.count());
+
+        // 企业需求统计
+        LambdaQueryWrapper<EnterpriseDemand> demandWrapper = new LambdaQueryWrapper<>();
+        demandWrapper.eq(EnterpriseDemand::getStatus, "pending_audit");
+        stats.put("demandPendingCount", enterpriseDemandService.count(demandWrapper));
         stats.put("demandCount", enterpriseDemandService.count());
+
+        // 闲置资源统计
+        LambdaQueryWrapper<IdleResource> resourceWrapper = new LambdaQueryWrapper<>();
+        resourceWrapper.eq(IdleResource::getStatus, "pending_audit");
+        stats.put("resourcePendingCount", idleResourceService.count(resourceWrapper));
         stats.put("resourceCount", idleResourceService.count());
+
+        // 学习资源统计
+        LambdaQueryWrapper<LearningResource> learningWrapper = new LambdaQueryWrapper<>();
+        learningWrapper.eq(LearningResource::getStatus, 2);
+        stats.put("learningPendingCount", learningResourceService.count(learningWrapper));
         stats.put("learningResourceCount", learningResourceService.count());
+
         return Result.success(stats);
     }
 
@@ -129,11 +151,15 @@ public class AdminController {
     public Result<Page<ResearchProject>> listProjectsForAudit(
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize,
-            @RequestParam(required = false) String keyword) {
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String status) {
 
         Page<ResearchProject> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<ResearchProject> wrapper = new LambdaQueryWrapper<>();
         wrapper.orderByDesc(ResearchProject::getCreateTime);
+        if (StringUtils.hasText(status)) {
+            wrapper.eq(ResearchProject::getStatus, status);
+        }
         if (StringUtils.hasText(keyword)) {
             wrapper.like(ResearchProject::getProjectName, keyword);
         }
@@ -148,11 +174,15 @@ public class AdminController {
     public Result<Page<EnterpriseDemand>> listDemandsForAudit(
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize,
-            @RequestParam(required = false) String keyword) {
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String status) {
 
         Page<EnterpriseDemand> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<EnterpriseDemand> wrapper = new LambdaQueryWrapper<>();
         wrapper.orderByDesc(EnterpriseDemand::getCreateTime);
+        if (StringUtils.hasText(status)) {
+            wrapper.eq(EnterpriseDemand::getStatus, status);
+        }
         if (StringUtils.hasText(keyword)) {
             wrapper.like(EnterpriseDemand::getDemandTitle, keyword);
         }
@@ -167,11 +197,15 @@ public class AdminController {
     public Result<Page<IdleResource>> listResourcesForAudit(
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize,
-            @RequestParam(required = false) String keyword) {
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String status) {
 
         Page<IdleResource> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<IdleResource> wrapper = new LambdaQueryWrapper<>();
         wrapper.orderByDesc(IdleResource::getCreateTime);
+        if (StringUtils.hasText(status)) {
+            wrapper.eq(IdleResource::getStatus, status);
+        }
         if (StringUtils.hasText(keyword)) {
             wrapper.like(IdleResource::getResourceName, keyword);
         }
@@ -186,11 +220,15 @@ public class AdminController {
     public Result<Page<LearningResource>> listLearningResourcesForAudit(
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize,
-            @RequestParam(required = false) String keyword) {
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer status) {
 
         Page<LearningResource> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<LearningResource> wrapper = new LambdaQueryWrapper<>();
         wrapper.orderByDesc(LearningResource::getCreateTime);
+        if (status != null) {
+            wrapper.eq(LearningResource::getStatus, status);
+        }
         if (StringUtils.hasText(keyword)) {
             wrapper.like(LearningResource::getResourceName, keyword);
         }
@@ -198,54 +236,81 @@ public class AdminController {
     }
 
     /**
-     * 更新科研项目状态
+     * 更新科研项目状态（审核通过/拒绝/关闭）
      */
     @OperationLogAnnotation(module = "内容审核", operation = "审核科研项目")
     @Operation(summary = "更新科研项目状态")
     @PutMapping("/audit/project/{id}/status")
     public Result<Boolean> updateProjectStatus(@PathVariable Long id, @RequestParam String status) {
-        ResearchProject project = new ResearchProject();
-        project.setId(id);
-        project.setStatus(status);
+        ResearchProject project = researchProjectService.getById(id);
+        if (project == null) {
+            return Result.error("项目不存在");
+        }
+        // 审核通过时，将待审核项目变为招募中
+        if ("pending_audit".equals(project.getStatus()) && "recruiting".equals(status)) {
+            project.setStatus("recruiting");
+        } else {
+            project.setStatus(status);
+        }
+        project.setUpdateTime(LocalDateTime.now());
         return Result.success(researchProjectService.updateById(project));
     }
 
     /**
-     * 更新企业需求状态
+     * 更新企业需求状态（审核通过/拒绝/关闭）
      */
     @OperationLogAnnotation(module = "内容审核", operation = "审核企业需求")
     @Operation(summary = "更新企业需求状态")
     @PutMapping("/audit/demand/{id}/status")
     public Result<Boolean> updateDemandStatus(@PathVariable Long id, @RequestParam String status) {
-        EnterpriseDemand demand = new EnterpriseDemand();
-        demand.setId(id);
-        demand.setStatus(status);
+        EnterpriseDemand demand = enterpriseDemandService.getById(id);
+        if (demand == null) {
+            return Result.error("需求不存在");
+        }
+        // 审核通过时，将待审核需求变为进行中
+        if ("pending_audit".equals(demand.getStatus()) && "open".equals(status)) {
+            demand.setStatus("open");
+        } else {
+            demand.setStatus(status);
+        }
+        demand.setUpdateTime(LocalDateTime.now());
         return Result.success(enterpriseDemandService.updateById(demand));
     }
 
     /**
-     * 更新闲置资源状态
+     * 更新闲置资源状态（审核通过/拒绝/下架）
      */
     @OperationLogAnnotation(module = "内容审核", operation = "审核闲置资源")
     @Operation(summary = "更新闲置资源状态")
     @PutMapping("/audit/resource/{id}/status")
     public Result<Boolean> updateResourceStatus(@PathVariable Long id, @RequestParam String status) {
-        IdleResource resource = new IdleResource();
-        resource.setId(id);
-        resource.setStatus(status);
+        IdleResource resource = idleResourceService.getById(id);
+        if (resource == null) {
+            return Result.error("资源不存在");
+        }
+        // 审核通过时，将待审核资源变为可预约
+        if ("pending_audit".equals(resource.getStatus()) && "available".equals(status)) {
+            resource.setStatus("available");
+        } else {
+            resource.setStatus(status);
+        }
+        resource.setUpdateTime(LocalDateTime.now());
         return Result.success(idleResourceService.updateById(resource));
     }
 
     /**
-     * 更新学习资源状态（上架/下架）
+     * 更新学习资源状态（审核通过=1 / 下架=0 / 拒绝=-1）
      */
     @OperationLogAnnotation(module = "内容审核", operation = "审核学习资源")
     @Operation(summary = "更新学习资源状态")
     @PutMapping("/audit/learning-resource/{id}/status")
     public Result<Boolean> updateLearningResourceStatus(@PathVariable Long id, @RequestParam Integer status) {
-        LearningResource resource = new LearningResource();
-        resource.setId(id);
+        LearningResource resource = learningResourceService.getById(id);
+        if (resource == null) {
+            return Result.error("学习资源不存在");
+        }
         resource.setStatus(status);
+        resource.setUpdateTime(LocalDateTime.now());
         return Result.success(learningResourceService.updateById(resource));
     }
 }

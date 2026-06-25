@@ -74,7 +74,8 @@ public class ResourceController {
         if (authentication != null && authentication.getCredentials() instanceof Long userId) {
             resource.setOwnerId(userId);
         }
-        resource.setStatus("available");
+        // 新发布的闲置资源默认进入待审核状态，管理员审核通过后才可预约
+        resource.setStatus("pending_audit");
         resource.setViews(0);
         idleResourceService.save(resource);
         return Result.success(resource.getId());
@@ -98,6 +99,9 @@ public class ResourceController {
         }
         if (StringUtils.hasText(status)) {
             wrapper.eq(IdleResource::getStatus, status);
+        } else {
+            // 默认只查询已审核通过的可预约/已租出资源，待审核内容不在列表展示
+            wrapper.in(IdleResource::getStatus, List.of("available", "rented", "booked"));
         }
         if (StringUtils.hasText(keyword)) {
             wrapper.and(w -> w.like(IdleResource::getResourceName, keyword)
@@ -261,6 +265,47 @@ public class ResourceController {
                     "资源预约" + auditResult,
                     "您对资源「" + resource.getResourceName() + "」的预约申请" + auditResult +
                             (StringUtils.hasText(replyMessage) ? "，回复：" + replyMessage : "。"),
+                    "booking",
+                    booking.getId(),
+                    "resource_booking"
+            );
+        }
+
+        return Result.success(result);
+    }
+
+    @OperationLogAnnotation(module = "资源流转", operation = "取消预约")
+    @Operation(summary = "取消资源预约")
+    @PutMapping("/booking/{id}/cancel")
+    public Result<Boolean> cancelBooking(@PathVariable Long id) {
+        ResourceBooking booking = resourceBookingService.getById(id);
+        if (booking == null) {
+            return Result.error("预约记录不存在");
+        }
+
+        // 只有待审批状态的预约可以取消
+        if (!"pending".equals(booking.getStatus())) {
+            return Result.error("只有待审批的预约可以取消");
+        }
+
+        // 校验权限：借用人本人或管理员可以取消
+        Long currentUserId = getCurrentUserId();
+        String currentRole = getCurrentRoleType();
+        if (!"admin".equals(currentRole) && !booking.getBorrowerId().equals(currentUserId)) {
+            return Result.error("无权取消该预约");
+        }
+
+        booking.setStatus("cancelled");
+        booking.setUpdateTime(LocalDateTime.now());
+        boolean result = resourceBookingService.updateById(booking);
+
+        // 发送取消通知给资源所有者
+        IdleResource resource = idleResourceService.getById(booking.getResourceId());
+        if (resource != null) {
+            notificationService.sendNotification(
+                    resource.getOwnerId(),
+                    "资源预约已取消",
+                    "用户对资源「" + resource.getResourceName() + "」的预约申请已取消。",
                     "booking",
                     booking.getId(),
                     "resource_booking"

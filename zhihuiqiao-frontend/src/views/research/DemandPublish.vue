@@ -104,7 +104,7 @@ const form = reactive({
   budgetRange: '',
   cooperationMode: '',
   contactPerson: '',
-  status: 'open'
+  status: 'pending_audit'
 })
 
 const rules = {
@@ -132,7 +132,7 @@ async function handleSubmit() {
       }
       const res: any = await publishDemand(submitData)
       if (res.code === 200) {
-        ElMessage.success('需求发布成功')
+        ElMessage.success('需求已提交，等待管理员审核通过后将自动上架')
         router.push('/app/research/demands')
       } else {
         ElMessage.error(res.message || '发布失败')

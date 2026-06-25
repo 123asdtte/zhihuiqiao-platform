@@ -80,6 +80,7 @@ export function getAuditProjects(params: {
   pageNum?: number
   pageSize?: number
   keyword?: string
+  status?: string
 }) {
   return request({
     url: '/api/admin/audit/projects',
@@ -95,6 +96,7 @@ export function getAuditDemands(params: {
   pageNum?: number
   pageSize?: number
   keyword?: string
+  status?: string
 }) {
   return request({
     url: '/api/admin/audit/demands',
@@ -110,6 +112,7 @@ export function getAuditResources(params: {
   pageNum?: number
   pageSize?: number
   keyword?: string
+  status?: string
 }) {
   return request({
     url: '/api/admin/audit/resources',
@@ -125,6 +128,7 @@ export function getAuditLearningResources(params: {
   pageNum?: number
   pageSize?: number
   keyword?: string
+  status?: number
 }) {
   return request({
     url: '/api/admin/audit/learning-resources',
