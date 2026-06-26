@@ -6,23 +6,19 @@
         <h1 class="zh-page-title">学习资源</h1>
         <p class="zh-page-subtitle">探索课程、视频、论文、图书与工具，提升学习与科研效率</p>
       </div>
-      <el-button v-if="canPublish" type="primary" class="publish-btn" @click="goToPublish">
-        <el-icon><Plus /></el-icon>
-        发布学习资源
-      </el-button>
     </div>
 
-    <!-- 搜索筛选 -->
+    <!-- 搜索筛选：横向排列，发布按钮放在搜索框右侧 -->
     <div class="filter-bar">
       <div class="filter-group">
-        <el-select v-model="searchForm.resourceType" placeholder="全部类型" clearable @change="handleSearch">
+        <el-select v-model="searchForm.resourceType" placeholder="全部类型" clearable style="width: 140px" @change="handleSearch">
           <el-option label="在线课程" value="course" />
           <el-option label="教学视频" value="video" />
           <el-option label="学术论文" value="paper" />
           <el-option label="电子图书" value="book" />
           <el-option label="工具软件" value="tool" />
         </el-select>
-        <el-select v-model="searchForm.subject" placeholder="全部学科" clearable @change="handleSearch">
+        <el-select v-model="searchForm.subject" placeholder="全部学科" clearable style="width: 140px" @change="handleSearch">
           <el-option label="计算机科学" value="计算机科学" />
           <el-option label="人工智能" value="人工智能" />
           <el-option label="电子工程" value="电子工程" />
@@ -30,7 +26,7 @@
           <el-option label="物理学" value="物理学" />
           <el-option label="其他" value="其他" />
         </el-select>
-        <el-select v-model="searchForm.difficultyLevel" placeholder="全部难度" clearable @change="handleSearch">
+        <el-select v-model="searchForm.difficultyLevel" placeholder="全部难度" clearable style="width: 140px" @change="handleSearch">
           <el-option label="初级" value="初级" />
           <el-option label="中级" value="中级" />
           <el-option label="高级" value="高级" />
@@ -47,6 +43,10 @@
             <el-icon><Search /></el-icon>
           </template>
         </el-input>
+        <el-button v-if="canPublish" type="primary" class="publish-btn" @click="goToPublish">
+          <el-icon><Plus /></el-icon>
+          发布学习资源
+        </el-button>
       </div>
       <el-button text @click="handleReset">重置筛选</el-button>
     </div>
@@ -465,6 +465,29 @@ onMounted(() => {
       &:hover {
         color: var(--zh-accent-light) !important;
       }
+    }
+  }
+}
+
+.filter-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--zh-bg-elevated);
+  border: 1px solid var(--zh-border-light);
+  border-radius: var(--zh-radius);
+  padding: var(--zh-space-4) var(--zh-space-5);
+  margin-bottom: var(--zh-space-6);
+  box-shadow: var(--zh-shadow-sm);
+
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: var(--zh-space-3);
+    flex-wrap: wrap;
+
+    > * {
+      flex-shrink: 0;
     }
   }
 }
