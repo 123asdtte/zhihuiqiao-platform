@@ -6,17 +6,12 @@
         <h1 class="zh-page-title">闲置资源共享</h1>
         <p class="zh-page-subtitle">浏览校园闲置设备、图书、场地等资源，按需预约借用</p>
       </div>
-      <!-- 发布资源按钮：仅学生、教师、管理员可见，企业账号无发布权限 -->
-      <el-button v-if="!userStore.isEnterprise" type="primary" class="publish-btn" @click="router.push('/app/resource/publish')">
-        <el-icon><Plus /></el-icon>
-        发布资源
-      </el-button>
     </div>
 
-    <!-- 搜索筛选 -->
+    <!-- 搜索筛选：横向排列，新增资源按钮放在搜索框右侧 -->
     <div class="filter-bar">
       <div class="filter-group">
-        <el-select v-model="searchForm.resourceType" placeholder="全部类型" clearable @change="handleSearch">
+        <el-select v-model="searchForm.resourceType" placeholder="全部类型" clearable style="width: 140px" @change="handleSearch">
           <el-option label="实验设备" value="实验设备" />
           <el-option label="图书资料" value="图书资料" />
           <el-option label="办公用品" value="办公用品" />
@@ -24,7 +19,7 @@
           <el-option label="场地空间" value="场地空间" />
           <el-option label="其他" value="其他" />
         </el-select>
-        <el-select v-model="searchForm.status" placeholder="全部状态" clearable @change="handleSearch">
+        <el-select v-model="searchForm.status" placeholder="全部状态" clearable style="width: 140px" @change="handleSearch">
           <el-option label="可借用" value="available" />
           <el-option label="已借出" value="rented" />
           <el-option label="不可用" value="unavailable" />
@@ -41,6 +36,11 @@
             <el-icon><Search /></el-icon>
           </template>
         </el-input>
+        <!-- 发布资源按钮：仅学生、教师、管理员可见，企业账号无发布权限 -->
+        <el-button v-if="!userStore.isEnterprise" type="primary" class="publish-btn" @click="router.push('/app/resource/publish')">
+          <el-icon><Plus /></el-icon>
+          发布资源
+        </el-button>
       </div>
       <el-button text @click="handleReset">重置筛选</el-button>
     </div>
@@ -396,6 +396,29 @@ onMounted(() => {
       font-size: 12px;
       color: var(--zh-primary);
       font-weight: 500;
+    }
+  }
+}
+
+.filter-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--zh-bg-elevated);
+  border: 1px solid var(--zh-border-light);
+  border-radius: var(--zh-radius);
+  padding: var(--zh-space-4) var(--zh-space-5);
+  margin-bottom: var(--zh-space-6);
+  box-shadow: var(--zh-shadow-sm);
+
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: var(--zh-space-3);
+    flex-wrap: wrap;
+
+    > * {
+      flex-shrink: 0;
     }
   }
 }

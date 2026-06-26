@@ -13,11 +13,11 @@
       </el-button>
     </div>
 
-    <!-- 搜索筛选区域 -->
+    <!-- 搜索筛选区域：修复标签显示不全，给下拉框增加宽度 -->
     <el-card class="filter-card" shadow="never">
       <el-form :model="searchForm" inline>
         <el-form-item label="需求类型">
-          <el-select v-model="searchForm.demandType" placeholder="全部类型" clearable @change="handleSearch">
+          <el-select v-model="searchForm.demandType" placeholder="全部类型" clearable style="width: 140px" @change="handleSearch">
             <el-option label="技术攻关" value="技术攻关" />
             <el-option label="成果转化" value="成果转化" />
             <el-option label="人才招聘" value="人才招聘" />
@@ -25,7 +25,7 @@
           </el-select>
         </el-form-item>
         <el-form-item label="需求状态">
-          <el-select v-model="searchForm.status" placeholder="全部状态" clearable @change="handleSearch">
+          <el-select v-model="searchForm.status" placeholder="全部状态" clearable style="width: 140px" @change="handleSearch">
             <el-option label="进行中" value="open" />
             <el-option label="已关闭" value="closed" />
             <el-option label="已完成" value="completed" />
