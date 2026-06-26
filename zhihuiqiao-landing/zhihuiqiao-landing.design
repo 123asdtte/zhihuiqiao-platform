@@ -1,0 +1,47 @@
+{
+  "data": [
+    {
+      "id": "page-landing",
+      "title": "智汇桥官网",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1782455400000,
+      "canvasData": {
+        "x": 0,
+        "y": 0,
+        "group": 0
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/landing.html",
+        "interactions": []
+      }
+    },
+    {
+      "id": "image-001",
+      "title": "主视觉",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1782455500000,
+      "canvasData": {
+        "x": 0,
+        "y": 640
+      },
+      "devMetadata": {
+        "imageSrc": "assets/hero-abstract.jpg"
+      }
+    }
+  ],
+  "config": {
+    "autoLayout": true,
+    "deviceType": "desktop",
+    "projectName": "智汇桥官网",
+    "designLibrary": {
+      "name": "TRAE",
+      "id": "dl_builtin_trae",
+      "version": null,
+      "scope": "built-in-global",
+      "path": "c:\\Users\\luofeng\\.trae-cn\\design_libraries\\dl_builtin_trae\\TRAE(1)",
+      "versionSource": "metadata.json"
+    }
+  }
+}

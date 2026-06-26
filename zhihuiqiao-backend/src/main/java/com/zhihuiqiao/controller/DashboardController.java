@@ -5,6 +5,8 @@ import com.zhihuiqiao.service.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -36,6 +38,18 @@ public class DashboardController {
     @Operation(summary = "获取全平台统计数据")
     @GetMapping("/stats")
     public Result<Map<String, Object>> getStats() {
+        // 全平台统计数据属于后台管理范畴，仅管理员可查看
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentRole = authentication != null && authentication.isAuthenticated()
+                ? authentication.getAuthorities().stream()
+                .findFirst()
+                .map(auth -> auth.getAuthority().replace("ROLE_", "").toLowerCase())
+                .orElse("")
+                : "";
+        if (!"admin".equals(currentRole)) {
+            return Result.error("无权查看全平台统计数据");
+        }
+
         Map<String, Object> stats = new HashMap<>();
 
         // 用户统计

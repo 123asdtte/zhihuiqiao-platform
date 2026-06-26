@@ -2,8 +2,15 @@
   <div class="demand-list-page">
     <!-- 页面标题 -->
     <div class="page-header">
-      <h2>企业需求</h2>
-      <p>浏览企业发布的技术需求、合作意向，寻找产学研合作机会</p>
+      <div>
+        <h2>企业需求</h2>
+        <p>浏览企业发布的技术需求、合作意向，寻找产学研合作机会</p>
+      </div>
+      <!-- 发布企业需求按钮：仅企业和管理员可见 -->
+      <el-button v-if="userStore.isEnterprise || userStore.isAdmin" type="primary" @click="router.push('/app/research/demand/publish')">
+        <el-icon><Plus /></el-icon>
+        发布企业需求
+      </el-button>
     </div>
 
     <!-- 搜索筛选区域 -->
@@ -91,10 +98,15 @@
 
 <script setup lang="ts">
 import { reactive, ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { debounce } from '@/utils/debounce'
-import { View, Money } from '@element-plus/icons-vue'
+import { useUserStore } from '@/stores/user'
+import { View, Money, Plus } from '@element-plus/icons-vue'
 import { getDemandList } from '@/api/research'
+
+const router = useRouter()
+const userStore = useUserStore()
 
 // 搜索表单
 const searchForm = reactive({
@@ -211,6 +223,9 @@ onMounted(() => {
 
   .page-header {
     margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
 
     h2 {
       margin: 0 0 8px 0;

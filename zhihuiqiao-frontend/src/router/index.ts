@@ -59,10 +59,16 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '项目申请', roles: ['student', 'admin'] }
       },
       {
+        path: 'research/my-projects',
+        name: 'MyProjects',
+        component: () => import('@/views/research/MyProjects.vue'),
+        meta: { title: '我的项目', roles: ['teacher', 'admin'] }
+      },
+      {
         path: 'research/project/publish',
         name: 'ProjectPublish',
         component: () => import('@/views/research/ProjectPublish.vue'),
-        meta: { title: '发布科研项目', roles: ['teacher', 'enterprise', 'admin'] }
+        meta: { title: '发布科研项目', roles: ['teacher', 'admin'] }
       },
       {
         path: 'research/demand/publish',

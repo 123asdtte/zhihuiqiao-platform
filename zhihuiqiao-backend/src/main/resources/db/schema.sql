@@ -79,6 +79,7 @@ CREATE TABLE IF NOT EXISTS research_project (
     project_code VARCHAR(100) DEFAULT NULL COMMENT '项目编号',
     publisher_id BIGINT NOT NULL COMMENT '发布人ID',
     publisher_type VARCHAR(50) NOT NULL COMMENT '发布人类型：teacher/enterprise',
+    publisher_name VARCHAR(50) DEFAULT NULL COMMENT '发布人姓名',
     project_type VARCHAR(50) DEFAULT NULL COMMENT '项目类型：基础研究/应用研究/技术开发/创新创业',
     research_fields TEXT COMMENT '研究领域',
     project_description TEXT COMMENT '项目简介',

@@ -1,0 +1,103 @@
+{
+  "project": {
+    "name": "智汇桥官网",
+    "operation": "create",
+    "operatingMode": "library-bound",
+    "designRead": "university platform landing / academic & enterprise stakeholders / calm enterprise trust with academic warmth / medium-low density / avoid neon AI hero",
+    "designDials": {
+      "layoutVariance": 3,
+      "motionIntensity": 2,
+      "visualDensity": 2
+    },
+    "generationTree": {
+      "root": {
+        "nodeId": "gen-project-shell",
+        "kind": "project-shell",
+        "pageIds": ["page-landing"],
+        "output": "partials/project-shell.html",
+        "sharedRegions": ["header", "footer", "root-frame"],
+        "privateRegions": [],
+        "mutableSlots": ["activeNavItem", "pageTitle"],
+        "status": "planned",
+        "children": [
+          {
+            "nodeId": "gen-page-landing",
+            "kind": "page-leaf",
+            "pageIds": ["page-landing"],
+            "output": "pages/landing.html",
+            "sharedRegions": [],
+            "privateRegions": ["hero", "features", "tech-stack", "cta"],
+            "mutableSlots": [],
+            "status": "planned",
+            "children": []
+          }
+        ]
+      }
+    }
+  },
+  "designSource": {
+    "operatingMode": "library-bound",
+    "libraryIdentity": {
+      "name": "TRAE",
+      "id": "dl_builtin_trae",
+      "version": null,
+      "scope": "built-in-global",
+      "path": "c:\\Users\\luofeng\\.trae-cn\\design_libraries\\dl_builtin_trae\\TRAE(1)",
+      "versionSource": "metadata.json"
+    },
+    "brandPrefix": "",
+    "cssPath": "c:\\Users\\luofeng\\.trae-cn\\design_libraries\\dl_builtin_trae\\TRAE(1)\\colors_and_type.css",
+    "designDecisionSummary": "Dark-first canvas with #1A1B1D base, #32F08C green brand accent, SF Pro typography, restrained 2-8px radius scale, compact 4-24px spacers. Neutral border palette. Status colors for semantic use only.",
+    "iconAssets": {
+      "source": "assets/icons",
+      "projectIconDir": "assets/icons/dl_builtin_trae",
+      "libraryKey": "dl_builtin_trae",
+      "renderMethod": "css-mask",
+      "pathTemplate": "../assets/icons/dl_builtin_trae/{name}.svg",
+      "availableNames": ["alert-circle","alert-triangle","alert","apple","arrow-down","arrow-expand","arrow-left","arrow-minimize","arrow-right-to-line","arrow-right","arrow-up-right","arrow-up","at","atom","bar","bell","box","bug","calendar","check-circle","check","chevron-down","chevron-right","chevron-up","circle","clock","cmd","code","columns","copy","cpu","dashboard","dollar","download","edit","extensions","external","eye","file-text","file","files","filter","folder","gear","git","github","globe","grid-2x2","hash","heart","help","home","image","info-circle","info-square","info","key","layers","layout","link","list","lock","log-out","logo","mail","menu","message-circle","message-plus","message-square","mic","minus","moon","more-h","mouse","palette","panel-bottom","pause","play","plug","plus","refresh","ruler","scroll-text","search-menu","search","send","settings","shield","sidebar-left","sidebar-right","sliders","sparkles","square","star","sun","terminal","trash","trending-down","trending-up","type","upload","user-circle","user","users","wrench","x-circle","x","zap"],
+      "totalCount": 115,
+      "coloringRule": "currentColor by default; override with Library token when needed"
+    },
+    "forbiddenInventedComponents": [],
+    "allowedComponents": "unrestricted",
+    "styleConstraints": {
+      "radiusMax": 10,
+      "spacingBase": 8,
+      "fontSizeBody": 13,
+      "controlHeightDefault": 32
+    }
+  },
+  "pages": [
+    {
+      "nodeId": "page-landing",
+      "title": "智汇桥官网",
+      "htmlSrc": "pages/landing.html",
+      "pageIndex": 1,
+      "pageType": "showcase",
+      "requirements": "Single-page landing for the Zhihuiqiao (智汇桥) university-industry collaboration platform. Sections: hero with tagline, three core feature modules (research matching, resource sharing, teaching assistance), tech stack showcase, and a final CTA section. Should convey academic warmth + tech credibility.",
+      "visualNorthStar": "Asymmetric hero split with a large headline on the left and subtle visual element on the right, dark background with green brand accent for energy",
+      "compositionPattern": "hero-features-cta-vertical",
+      "continuityAnchors": {
+        "colorSystem": "Dark canvas #1A1B1D with #32F08C green brand, neutral border palette",
+        "shapeSystem": "Restrained radius 2-8px, clean surface layering",
+        "typographySystem": "SF Pro system fonts, heading 600 weight, body 400",
+        "componentLanguage": "Clean cards with subtle borders, ghost-style buttons, minimal decoration",
+        "surfaceAndDepth": "Surface lifts via bg-base-secondary/tertiary, no heavy shadows"
+      },
+      "componentPlan": [
+        {"slug": "buttons", "role": "cta-and-navigation"},
+        {"slug": "cards", "role": "feature-cards"},
+        {"slug": "tag", "role": "tech-labels"}
+      ],
+      "imagePlan": [
+        {"role": "critical-hero", "section": "hero", "filename": "hero-abstract.jpg", "status": "planned"}
+      ],
+      "soulElement": "Hero section uses an asymmetric 55/45 split with a bold oversized tagline on left and a subtle glowing abstract visual on right, creating academic authority with tech energy"
+    }
+  ],
+  "assets": [
+    {"role": "critical-hero", "section": "hero", "filename": "hero-abstract.jpg", "owningPage": "page-landing", "status": "planned"}
+  ],
+  "wiringPlan": [],
+  "hiddenInteractionPlan": []
+}

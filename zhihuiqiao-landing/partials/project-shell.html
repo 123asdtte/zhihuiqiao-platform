@@ -1,0 +1,148 @@
+<!--
+  智汇桥 (Zhihuiqiao) Landing Page — Shared Project Shell Fragment
+  ================================================================
+  此片段定义了项目中所有页面共用的根框架、导航栏和页脚。
+  各页面通过 copy + 替换 slot 标记来继承此 shell。
+  依赖: Tailwind CDN (由页面自身引入), fill-html-head.mjs 注入 CSS 变量。
+  设计系统: TRAE Design System (dark-first)
+-->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- SLOT: pageTitle — 页面级标题 / meta 信息，由各页面替换 -->
+  <!-- SLOT: pageTitle -->
+
+  <title>智汇桥 — AI 驱动的产学研用一体化智慧协同系统</title>
+</head>
+
+<body
+  class="min-h-screen flex flex-col"
+  style="background-color: var(--bg-base-default); color: var(--text-default); font-family: var(--body-base-font-family);"
+>
+
+  <!-- ============================================================
+       HEADER — 顶部粘性导航
+       ============================================================ -->
+  <header
+    class="sticky top-0 z-50 w-full"
+    style="
+      background-color: color-mix(in srgb, var(--bg-base-default) 85%, transparent);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-neutral-l1);
+    "
+  >
+    <!-- 导航容器：水平居中，左右留白 -->
+    <nav class="mx-auto flex items-center justify-between px-6" style="max-width: 1280px; height: 64px;">
+
+      <!-- Logo 区域 -->
+      <a href="#" class="flex items-center gap-2 no-underline">
+        <span
+          class="text-lg font-bold tracking-tight"
+          style="color: var(--bg-brand);"
+        >智汇桥</span>
+        <span
+          class="text-xs font-normal"
+          style="color: var(--text-tertiary);"
+        >Zhihuiqiao</span>
+      </a>
+
+      <!-- 导航链接 -->
+      <ul class="hidden md:flex items-center gap-8 list-none m-0 p-0">
+        <li>
+          <!-- SLOT: activeNavItem — 激活状态时添加 class 标记，如 text-[var(--bg-brand)] -->
+          <a
+            href="#"
+            class="text-sm no-underline transition-colors duration-150"
+            style="color: var(--text-secondary);"
+            onmouseover="this.style.color='var(--text-default)'"
+            onmouseout="this.style.color='var(--text-secondary)'"
+          >首页</a>
+        </li>
+        <li>
+          <a
+            href="#features"
+            class="text-sm no-underline transition-colors duration-150"
+            style="color: var(--text-secondary);"
+            onmouseover="this.style.color='var(--text-default)'"
+            onmouseout="this.style.color='var(--text-secondary)'"
+          >核心功能</a>
+        </li>
+        <li>
+          <a
+            href="#tech"
+            class="text-sm no-underline transition-colors duration-150"
+            style="color: var(--text-secondary);"
+            onmouseover="this.style.color='var(--text-default)'"
+            onmouseout="this.style.color='var(--text-secondary)'"
+          >技术架构</a>
+        </li>
+      </ul>
+
+      <!-- CTA 按钮：幽灵风格，绿色边框和文字 -->
+      <a
+        href="#cta"
+        class="hidden md:inline-flex items-center justify-center text-sm font-medium no-underline transition-colors duration-150"
+        style="
+          padding: 8px 20px;
+          border-radius: var(--radius-6);
+          border: 1px solid var(--bg-brand);
+          color: var(--bg-brand);
+        "
+        onmouseover="this.style.backgroundColor='color-mix(in srgb, var(--bg-brand) 12%, transparent)'"
+        onmouseout="this.style.backgroundColor='transparent'"
+      >立即体验</a>
+
+      <!-- 移动端菜单按钮（小屏幕可见） -->
+      <button
+        class="md:hidden flex items-center justify-center"
+        style="
+          width: 36px; height: 36px;
+          border-radius: var(--radius-4);
+          border: none;
+          background: transparent;
+          color: var(--text-secondary);
+          cursor: pointer;
+        "
+        aria-label="菜单"
+      >
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <line x1="3" y1="5" x2="17" y2="5" />
+          <line x1="3" y1="10" x2="17" y2="10" />
+          <line x1="3" y1="15" x2="17" y2="15" />
+        </svg>
+      </button>
+    </nav>
+  </header>
+
+  <!-- ============================================================
+       MAIN — 页面内容区域（各页面在此填充）
+       ============================================================ -->
+  <main class="flex-1 w-full mx-auto" style="max-width: 1280px;">
+
+    <!-- SLOT: pageContent — 各页面的主要内容片段替换此处 -->
+    <!-- SLOT: pageContent -->
+
+  </main>
+
+  <!-- ============================================================
+       FOOTER — 页脚
+       ============================================================ -->
+  <footer
+    class="w-full"
+    style="
+      border-top: 1px solid var(--border-neutral-l1);
+      padding: 32px 24px;
+    "
+  >
+    <p
+      class="text-center text-xs m-0"
+      style="color: var(--text-tertiary);"
+    >© 2026 智汇桥 Zhihuiqiao — AI 驱动的产学研用一体化智慧协同系统</p>
+  </footer>
+
+</body>
+</html>

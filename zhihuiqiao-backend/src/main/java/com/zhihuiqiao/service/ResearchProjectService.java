@@ -17,4 +17,14 @@ public interface ResearchProjectService extends IService<ResearchProject> {
      * @return 项目列表
      */
     List<ResearchProject> searchByKeyword(String keyword);
+
+    /**
+     * 删除科研项目
+     *
+     * @param id            项目ID
+     * @param currentUserId 当前登录用户ID
+     * @param currentRole   当前登录用户角色
+     * @return 删除是否成功
+     */
+    boolean deleteProject(Long id, Long currentUserId, String currentRole);
 }

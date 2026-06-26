@@ -6,7 +6,8 @@
         <h1 class="zh-page-title">闲置资源共享</h1>
         <p class="zh-page-subtitle">浏览校园闲置设备、图书、场地等资源，按需预约借用</p>
       </div>
-      <el-button type="primary" class="publish-btn" @click="router.push('/app/resource/publish')">
+      <!-- 发布资源按钮：仅学生、教师、管理员可见，企业账号无发布权限 -->
+      <el-button v-if="!userStore.isEnterprise" type="primary" class="publish-btn" @click="router.push('/app/resource/publish')">
         <el-icon><Plus /></el-icon>
         发布资源
       </el-button>
@@ -117,10 +118,12 @@ import { reactive, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { debounce } from '@/utils/debounce'
+import { useUserStore } from '@/stores/user'
 import { Picture, Location, View, Search, Plus } from '@element-plus/icons-vue'
 import { getResourceList } from '@/api/resource'
 
 const router = useRouter()
+const userStore = useUserStore()
 
 // 默认占位图片
 const defaultImage = 'https://placehold.co/300x160/e4e7ed/909399?text=暂无图片'

@@ -80,7 +80,7 @@
               <p class="rules">{{ resource.borrowRules || '暂无借用规则' }}</p>
             </div>
 
-            <div class="action-buttons">
+            <div v-if="!userStore.isEnterprise" class="action-buttons">
               <el-button
                 type="primary"
                 size="large"

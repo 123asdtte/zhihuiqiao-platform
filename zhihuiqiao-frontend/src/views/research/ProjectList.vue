@@ -6,7 +6,8 @@
         <h1 class="zh-page-title">科研项目</h1>
         <p class="zh-page-subtitle">浏览师生发布的科研项目，寻找感兴趣的科研机会</p>
       </div>
-      <el-button type="primary" class="publish-btn" @click="router.push('/app/research/project/publish')">
+      <!-- 发布科研项目按钮：仅教师和管理员可见 -->
+      <el-button v-if="userStore.isTeacher || userStore.isAdmin" type="primary" class="publish-btn" @click="router.push('/app/research/project/publish')">
         <el-icon><Plus /></el-icon>
         发布项目
       </el-button>
@@ -119,10 +120,12 @@ import { reactive, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { debounce } from '@/utils/debounce'
+import { useUserStore } from '@/stores/user'
 import { View, User, Calendar, Search, Plus } from '@element-plus/icons-vue'
 import { getProjectList } from '@/api/research'
 
 const router = useRouter()
+const userStore = useUserStore()
 
 // 搜索表单
 const searchForm = reactive({

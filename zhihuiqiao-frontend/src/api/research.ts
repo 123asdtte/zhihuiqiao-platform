@@ -95,6 +95,34 @@ export function updateProjectStatus(id: number | string, status: string) {
   })
 }
 
+/**
+ * 删除科研项目
+ * @param id 项目ID
+ */
+export function deleteProject(id: number | string) {
+  return request({
+    url: `/api/research/project/${id}`,
+    method: 'delete'
+  })
+}
+
+/**
+ * 查询我发布的科研项目
+ * @param params 查询参数
+ */
+export function getMyProjects(params: {
+  pageNum?: number
+  pageSize?: number
+  keyword?: string
+  status?: string
+}) {
+  return request({
+    url: '/api/research/project/my',
+    method: 'get',
+    params
+  })
+}
+
 // ==================== 项目申请 ====================
 
 /**

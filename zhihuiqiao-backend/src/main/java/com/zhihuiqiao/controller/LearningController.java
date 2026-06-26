@@ -33,6 +33,31 @@ public class LearningController {
     private final LearningResourceService learningResourceService;
     private final LearningRecordService learningRecordService;
 
+    /**
+     * 获取当前登录用户ID
+     */
+    private Long getCurrentUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getCredentials() instanceof Long userId) {
+            return userId;
+        }
+        return null;
+    }
+
+    /**
+     * 获取当前登录用户角色类型
+     */
+    private String getCurrentRoleType() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return "";
+        }
+        return authentication.getAuthorities().stream()
+                .findFirst()
+                .map(auth -> auth.getAuthority().replace("ROLE_", "").toLowerCase())
+                .orElse("");
+    }
+
     // ==================== 学习资源 ====================
 
     /**
@@ -42,6 +67,12 @@ public class LearningController {
     @Operation(summary = "发布学习资源")
     @PostMapping("/resource")
     public Result<Long> publishResource(@RequestBody @Valid LearningResource resource) {
+        // 学习资源仅允许教师或管理员发布
+        String roleType = getCurrentRoleType();
+        if (!"teacher".equals(roleType) && !"admin".equals(roleType)) {
+            return Result.error("无权发布学习资源");
+        }
+
         // 从 SecurityContext 获取当前登录用户 ID 设置为发布人
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getCredentials() instanceof Long userId) {
@@ -133,6 +164,16 @@ public class LearningController {
     @Operation(summary = "删除学习资源")
     @DeleteMapping("/resource/{id}")
     public Result<Boolean> deleteResource(@PathVariable Long id) {
+        // 仅资源发布者或管理员可删除
+        LearningResource resource = learningResourceService.getById(id);
+        if (resource == null) {
+            return Result.error("学习资源不存在");
+        }
+        Long currentUserId = getCurrentUserId();
+        String currentRole = getCurrentRoleType();
+        if (!"admin".equals(currentRole) && !resource.getPublisherId().equals(currentUserId)) {
+            return Result.error("无权删除该学习资源");
+        }
         return Result.success(learningResourceService.removeById(id));
     }
 
@@ -255,6 +296,16 @@ public class LearningController {
     @Operation(summary = "删除学习记录")
     @DeleteMapping("/record/{id}")
     public Result<Boolean> deleteRecord(@PathVariable Long id) {
+        // 仅记录所有者或管理员可删除
+        LearningRecord record = learningRecordService.getById(id);
+        if (record == null) {
+            return Result.error("学习记录不存在");
+        }
+        Long currentUserId = getCurrentUserId();
+        String currentRole = getCurrentRoleType();
+        if (!"admin".equals(currentRole) && !record.getUserId().equals(currentUserId)) {
+            return Result.error("无权删除该学习记录");
+        }
         return Result.success(learningRecordService.removeById(id));
     }
 }

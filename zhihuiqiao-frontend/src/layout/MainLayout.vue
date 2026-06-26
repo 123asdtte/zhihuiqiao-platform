@@ -37,11 +37,13 @@
             </template>
             <el-menu-item index="/app/research/projects">科研项目</el-menu-item>
             <el-menu-item index="/app/research/demands">企业需求</el-menu-item>
-            <el-menu-item index="/app/research/applications">我的申请</el-menu-item>
-            <el-menu-item index="/app/research/profile">科研画像</el-menu-item>
+            <el-menu-item v-if="userStore.isStudent || userStore.isAdmin" index="/app/research/applications">我的申请</el-menu-item>
+            <el-menu-item v-if="userStore.isTeacher || userStore.isAdmin" index="/app/research/my-projects">我的项目</el-menu-item>
+            <el-menu-item v-if="userStore.isStudent || userStore.isTeacher" index="/app/research/profile">科研画像</el-menu-item>
           </el-sub-menu>
 
-          <el-sub-menu index="/app/resource">
+          <!-- 资源流转：企业账号无对应权限，隐藏整组菜单 -->
+          <el-sub-menu v-if="!userStore.isEnterprise" index="/app/resource">
             <template #title>
               <el-icon><Box /></el-icon>
               <span>资源流转</span>
@@ -51,13 +53,15 @@
             <el-menu-item index="/app/resource/publish">发布资源</el-menu-item>
           </el-sub-menu>
 
-          <el-sub-menu index="/app/learning">
+          <!-- 教学辅助：企业账号无对应权限，隐藏整组菜单 -->
+          <el-sub-menu v-if="!userStore.isEnterprise" index="/app/learning">
             <template #title>
               <el-icon><Reading /></el-icon>
               <span>教学辅助</span>
             </template>
             <el-menu-item index="/app/learning/resources">学习资源</el-menu-item>
-            <el-menu-item index="/app/learning/center">学习中心</el-menu-item>
+            <!-- 学习中心仅学生与管理员可访问 -->
+            <el-menu-item v-if="userStore.isStudent || userStore.isAdmin" index="/app/learning/center">学习中心</el-menu-item>
             <el-menu-item index="/app/learning/publish">发布资源</el-menu-item>
           </el-sub-menu>
 

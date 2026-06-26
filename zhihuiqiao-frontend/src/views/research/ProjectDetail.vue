@@ -32,6 +32,15 @@
 
           <div class="detail-actions-bar">
             <el-button
+              v-if="canDeleteProject"
+              size="large"
+              type="danger"
+              plain
+              @click="handleDeleteProject"
+            >
+              删除项目
+            </el-button>
+            <el-button
               v-if="canViewApplications"
               size="large"
               @click="showApplicationsDrawer"
@@ -198,9 +207,9 @@
 <script setup lang="ts">
 import { reactive, ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { View, Calendar, ArrowLeft } from '@element-plus/icons-vue'
-import { getProjectDetail, applyProject, getProjectApplications, auditApplication } from '@/api/research'
+import { getProjectDetail, applyProject, getProjectApplications, auditApplication, deleteProject } from '@/api/research'
 import { useUserStore } from '@/stores/user'
 
 const route = useRoute()
@@ -264,10 +273,23 @@ const applyButtonText = computed(() => {
 })
 
 /**
- * 是否可以查看项目申请
+ * 是否可以查看项目申请（仅教师/管理员身份，且为项目发布者或管理员可查看）
  */
 const canViewApplications = computed(() => {
-  return userStore.isTeacher || userStore.isAdmin || userStore.isEnterprise
+  if (!project.value) return false
+  if (userStore.isAdmin) return true
+  if (!userStore.isTeacher) return false
+  return project.value.publisherId === userStore.userInfo?.id
+})
+
+/**
+ * 是否可删除项目（仅教师/管理员身份，且为项目发布者或管理员可删除）
+ */
+const canDeleteProject = computed(() => {
+  if (!project.value) return false
+  if (userStore.isAdmin) return true
+  if (!userStore.isTeacher) return false
+  return project.value.publisherId === userStore.userInfo?.id
 })
 
 /**
@@ -415,6 +437,34 @@ async function handleAudit(id: number, status: string) {
   } catch (error) {
     ElMessage.error('审核失败')
     console.error(error)
+  }
+}
+
+/**
+ * 删除项目
+ */
+async function handleDeleteProject() {
+  if (!project.value) return
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除项目「${project.value.projectName}」吗？删除后将无法恢复，且相关申请记录也会被清除。`,
+      '删除确认',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    const res: any = await deleteProject(project.value.id)
+    if (res.code === 200) {
+      ElMessage.success('项目删除成功')
+      router.push('/app/research/projects')
+    } else {
+      ElMessage.error(res.message || '删除失败')
+    }
+  } catch (error: any) {
+    if (error === 'cancel' || error?.message === 'cancel') return
+    ElMessage.error(error?.response?.data?.message || '删除失败')
   }
 }
 

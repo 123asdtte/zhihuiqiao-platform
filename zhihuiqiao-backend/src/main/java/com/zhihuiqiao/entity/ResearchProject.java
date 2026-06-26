@@ -43,6 +43,11 @@ public class ResearchProject {
     private String publisherType;
 
     /**
+     * 发布人姓名，冗余字段用于列表/详情展示
+     */
+    private String publisherName;
+
+    /**
      * 项目类型：基础研究/应用研究/技术开发/创新创业
      */
     private String projectType;

@@ -40,6 +40,12 @@ public class ResearchController {
     @Operation(summary = "创建或更新科研画像")
     @PostMapping("/profile")
     public Result<Long> saveOrUpdateProfile(@RequestBody @Valid ResearcherProfile profile) {
+        // 科研画像仅面向学生与教师，企业账号无需维护科研画像
+        String roleType = getCurrentRoleType();
+        if (!"student".equals(roleType) && !"teacher".equals(roleType) && !"admin".equals(roleType)) {
+            return Result.error("当前角色无法维护科研画像");
+        }
+
         // 根据 userId 判断是新增还是更新
         LambdaQueryWrapper<ResearcherProfile> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ResearcherProfile::getUserId, profile.getUserId());
@@ -72,12 +78,22 @@ public class ResearchController {
     @Operation(summary = "发布科研项目")
     @PostMapping("/project")
     public Result<Long> publishProject(@RequestBody @Valid ResearchProject project) {
+        String roleType = getCurrentRoleType();
+        // 科研项目仅允许教师或管理员发布
+        if (!"teacher".equals(roleType) && !"admin".equals(roleType)) {
+            return Result.error("无权发布科研项目");
+        }
+
         // 从 SecurityContext 获取当前登录用户，设置发布者信息
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getCredentials() instanceof Long userId) {
             project.setPublisherId(userId);
+            // 同步填充发布人姓名，避免详情/列表展示为"未知"
+            SysUser publisher = sysUserService.getById(userId);
+            if (publisher != null) {
+                project.setPublisherName(publisher.getUsername());
+            }
         }
-        String roleType = getCurrentRoleType();
         project.setPublisherType(roleType);
 
         // 设置默认值：未指定状态时默认为待审核，管理员审核通过后才变为招募中
@@ -119,6 +135,21 @@ public class ResearchController {
         return null;
     }
 
+    /**
+     * 补充项目发布人姓名，兼容历史数据 publisher_name 为空的情况
+     */
+    private void fillPublisherName(ResearchProject project) {
+        if (project == null) {
+            return;
+        }
+        if (!StringUtils.hasText(project.getPublisherName()) && project.getPublisherId() != null) {
+            SysUser publisher = sysUserService.getById(project.getPublisherId());
+            if (publisher != null) {
+                project.setPublisherName(publisher.getUsername());
+            }
+        }
+    }
+
     @Operation(summary = "分页查询科研项目列表")
     @GetMapping("/project/list")
     public Result<Page<ResearchProject>> listProjects(
@@ -156,7 +187,9 @@ public class ResearchController {
             }
         }
 
-        return Result.success(researchProjectService.page(page, wrapper));
+        Page<ResearchProject> result = researchProjectService.page(page, wrapper);
+        result.getRecords().forEach(this::fillPublisherName);
+        return Result.success(result);
     }
 
     @Operation(summary = "查询项目详情")
@@ -167,6 +200,7 @@ public class ResearchController {
             // 浏览量字段可能为空，需做防 null 处理
             project.setViews((project.getViews() == null ? 0 : project.getViews()) + 1);
             researchProjectService.updateById(project);
+            fillPublisherName(project);
         }
         return Result.success(project);
     }
@@ -180,11 +214,57 @@ public class ResearchController {
         return Result.success(researchProjectService.updateById(project));
     }
 
+    @OperationLogAnnotation(module = "科研撮合", operation = "删除科研项目")
+    @Operation(summary = "删除科研项目")
+    @DeleteMapping("/project/{id}")
+    public Result<Boolean> deleteProject(@PathVariable Long id) {
+        Long currentUserId = getCurrentUserId();
+        String currentRole = getCurrentRoleType();
+        try {
+            boolean success = researchProjectService.deleteProject(id, currentUserId, currentRole);
+            return Result.success(success);
+        } catch (RuntimeException e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    @Operation(summary = "查询我发布的科研项目")
+    @GetMapping("/project/my")
+    public Result<Page<ResearchProject>> listMyProjects(
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String status) {
+
+        Long currentUserId = getCurrentUserId();
+        Page<ResearchProject> page = new Page<>(pageNum, pageSize);
+        LambdaQueryWrapper<ResearchProject> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ResearchProject::getPublisherId, currentUserId)
+                .orderByDesc(ResearchProject::getCreateTime);
+
+        if (StringUtils.hasText(status)) {
+            wrapper.eq(ResearchProject::getStatus, status);
+        }
+        if (StringUtils.hasText(keyword)) {
+            wrapper.like(ResearchProject::getProjectName, keyword);
+        }
+
+        Page<ResearchProject> result = researchProjectService.page(page, wrapper);
+        result.getRecords().forEach(this::fillPublisherName);
+        return Result.success(result);
+    }
+
     // ==================== 项目申请 ====================
 
     @Operation(summary = "提交项目加入申请")
     @PostMapping("/application")
     public Result<Long> applyProject(@RequestBody @Valid ProjectApplication application) {
+        String roleType = getCurrentRoleType();
+        // 科研项目申请仅允许学生或管理员提交
+        if (!"student".equals(roleType) && !"admin".equals(roleType)) {
+            return Result.error("当前角色无法申请科研项目");
+        }
+
         // 从当前登录用户设置申请人ID，防止前端伪造
         Long currentUserId = getCurrentUserId();
         if (currentUserId != null) {
@@ -308,13 +388,23 @@ public class ResearchController {
             return Result.error("申请记录不存在");
         }
 
+        // 仅项目发布者或管理员可审批该项目的加入申请
+        ResearchProject project = researchProjectService.getById(application.getProjectId());
+        if (project == null) {
+            return Result.error("项目不存在");
+        }
+        Long currentUserId = getCurrentUserId();
+        String currentRole = getCurrentRoleType();
+        if (!"admin".equals(currentRole) && !project.getPublisherId().equals(currentUserId)) {
+            return Result.error("无权审批该项目的申请");
+        }
+
         application.setStatus(status);
         application.setReplyMessage(replyMessage);
         application.setHandleTime(LocalDateTime.now());
         boolean result = projectApplicationService.updateById(application);
 
         // 审核通过时，更新项目当前成员数
-        ResearchProject project = researchProjectService.getById(application.getProjectId());
         if ("approved".equals(status) && project != null) {
             project.setCurrentMembers(project.getCurrentMembers() + 1);
             if (project.getCurrentMembers() >= project.getMaxMembers()) {
@@ -346,6 +436,12 @@ public class ResearchController {
     @Operation(summary = "发布企业需求")
     @PostMapping("/demand")
     public Result<Long> publishDemand(@RequestBody @Valid EnterpriseDemand demand) {
+        String roleType = getCurrentRoleType();
+        // 企业需求仅允许企业或管理员发布
+        if (!"enterprise".equals(roleType) && !"admin".equals(roleType)) {
+            return Result.error("无权发布企业需求");
+        }
+
         // 从 SecurityContext 获取当前登录用户，设置发布企业ID
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getCredentials() instanceof Long userId) {

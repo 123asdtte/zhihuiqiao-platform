@@ -69,6 +69,12 @@ public class ResourceController {
     @Operation(summary = "发布闲置资源")
     @PostMapping("/publish")
     public Result<Long> publishResource(@RequestBody @Valid IdleResource resource) {
+        // 闲置资源仅允许学生、教师或管理员发布，企业账号无此权限
+        String roleType = getCurrentRoleType();
+        if (!"student".equals(roleType) && !"teacher".equals(roleType) && !"admin".equals(roleType)) {
+            return Result.error("无权发布闲置资源");
+        }
+
         // 从 SecurityContext 获取当前登录用户 ID，设置为资源所有者
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getCredentials() instanceof Long userId) {
@@ -126,6 +132,17 @@ public class ResourceController {
     @Operation(summary = "更新资源状态")
     @PutMapping("/{id}/status")
     public Result<Boolean> updateResourceStatus(@PathVariable Long id, @RequestParam String status) {
+        // 仅资源所有者或管理员可修改资源状态
+        IdleResource existing = idleResourceService.getById(id);
+        if (existing == null) {
+            return Result.error("资源不存在");
+        }
+        Long currentUserId = getCurrentUserId();
+        String currentRole = getCurrentRoleType();
+        if (!"admin".equals(currentRole) && !existing.getOwnerId().equals(currentUserId)) {
+            return Result.error("无权修改该资源状态");
+        }
+
         IdleResource resource = new IdleResource();
         resource.setId(id);
         resource.setStatus(status);
@@ -137,6 +154,12 @@ public class ResourceController {
     @Operation(summary = "提交资源预约申请")
     @PostMapping("/booking")
     public Result<Long> submitBooking(@RequestBody @Valid ResourceBooking booking) {
+        // 资源预约仅允许学生、教师或管理员提交，企业账号无此权限
+        String roleType = getCurrentRoleType();
+        if (!"student".equals(roleType) && !"teacher".equals(roleType) && !"admin".equals(roleType)) {
+            return Result.error("无权预约闲置资源");
+        }
+
         // 从当前登录用户设置借用人，防止前端伪造
         Long currentUserId = getCurrentUserId();
         if (currentUserId != null) {
@@ -242,12 +265,22 @@ public class ResourceController {
             return Result.error("预约记录不存在");
         }
 
+        // 仅资源所有者或管理员可审批该资源的预约申请
+        IdleResource resource = idleResourceService.getById(booking.getResourceId());
+        if (resource == null) {
+            return Result.error("资源不存在");
+        }
+        Long currentUserId = getCurrentUserId();
+        String currentRole = getCurrentRoleType();
+        if (!"admin".equals(currentRole) && !resource.getOwnerId().equals(currentUserId)) {
+            return Result.error("无权审批该预约");
+        }
+
         booking.setStatus(status);
         booking.setReplyMessage(replyMessage);
         boolean result = resourceBookingService.updateById(booking);
 
         // 审批通过时，记录流转日志并更新资源状态
-        IdleResource resource = idleResourceService.getById(booking.getResourceId());
         if ("approved".equals(status) && resource != null) {
             resource.setStatus("rented");
             idleResourceService.updateById(resource);
@@ -330,11 +363,23 @@ public class ResourceController {
             return Result.error("预约记录不存在");
         }
 
+        // 校验权限：借用人本人、资源所有者或管理员可以归还
+        IdleResource resource = idleResourceService.getById(booking.getResourceId());
+        if (resource == null) {
+            return Result.error("资源不存在");
+        }
+        Long currentUserId = getCurrentUserId();
+        String currentRole = getCurrentRoleType();
+        if (!"admin".equals(currentRole)
+                && !resource.getOwnerId().equals(currentUserId)
+                && !booking.getBorrowerId().equals(currentUserId)) {
+            return Result.error("无权归还该资源");
+        }
+
         booking.setStatus("returned");
         booking.setReturnTime(LocalDateTime.now());
         boolean result = resourceBookingService.updateById(booking);
 
-        IdleResource resource = idleResourceService.getById(booking.getResourceId());
         if (resource != null) {
             resource.setStatus("available");
             idleResourceService.updateById(resource);
@@ -358,6 +403,17 @@ public class ResourceController {
     @Operation(summary = "查询资源的流转记录")
     @GetMapping("/{resourceId}/transfer-logs")
     public Result<List<ResourceTransferLog>> listTransferLogs(@PathVariable Long resourceId) {
+        // 仅资源所有者或管理员可查看流转记录
+        IdleResource resource = idleResourceService.getById(resourceId);
+        if (resource == null) {
+            return Result.success(List.of());
+        }
+        Long currentUserId = getCurrentUserId();
+        String currentRole = getCurrentRoleType();
+        if (!"admin".equals(currentRole) && !resource.getOwnerId().equals(currentUserId)) {
+            return Result.error("无权查看该资源的流转记录");
+        }
+
         LambdaQueryWrapper<ResourceTransferLog> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ResourceTransferLog::getResourceId, resourceId)
                 .orderByDesc(ResourceTransferLog::getCreateTime);
