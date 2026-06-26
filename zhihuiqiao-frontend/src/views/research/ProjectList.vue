@@ -53,7 +53,16 @@
         @click="goToDetail(item.id)"
       >
         <div class="project-card-header">
-          <span class="project-status" :class="item.status">{{ statusText(item.status) }}</span>
+          <div class="status-group">
+            <span class="project-status" :class="item.status">{{ statusText(item.status) }}</span>
+            <span
+              v-if="getMyApplicationStatus(item.id)"
+              class="my-application-status"
+              :class="applicationStatusClass(getMyApplicationStatus(item.id))"
+            >
+              {{ applicationStatusText(getMyApplicationStatus(item.id)) }}
+            </span>
+          </div>
           <span class="project-views">
             <el-icon><View /></el-icon>
             {{ item.views }}
@@ -122,7 +131,7 @@ import { ElMessage } from 'element-plus'
 import { debounce } from '@/utils/debounce'
 import { useUserStore } from '@/stores/user'
 import { View, User, Calendar, Search, Plus } from '@element-plus/icons-vue'
-import { getProjectList } from '@/api/research'
+import { getProjectList, getMyApplications } from '@/api/research'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -145,6 +154,9 @@ const pagination = reactive({
 const projectList = ref<any[]>([])
 const loading = ref(false)
 
+// 当前用户的申请记录（用于在项目卡片上显示申请状态）
+const myApplications = ref<any[]>([])
+
 /**
  * 状态文本映射
  */
@@ -156,6 +168,38 @@ function statusText(status: string) {
     closed: '已关闭'
   }
   return map[status] || status
+}
+
+/**
+ * 获取当前用户对指定项目的申请状态
+ */
+function getMyApplicationStatus(projectId: number | string) {
+  const app = myApplications.value.find(item => String(item.projectId) === String(projectId))
+  return app ? app.status : null
+}
+
+/**
+ * 申请状态文本映射
+ */
+function applicationStatusText(status: string) {
+  const map: Record<string, string> = {
+    pending: '审核中',
+    approved: '已加入',
+    rejected: '已拒绝'
+  }
+  return map[status] || status
+}
+
+/**
+ * 申请状态样式类
+ */
+function applicationStatusClass(status: string) {
+  const map: Record<string, string> = {
+    pending: 'pending',
+    approved: 'approved',
+    rejected: 'rejected'
+  }
+  return map[status] || ''
 }
 
 /**
@@ -190,11 +234,29 @@ async function loadProjectList() {
     })
     projectList.value = res.data?.records || []
     pagination.total = res.data?.total || 0
+    // 列表加载完成后，查询当前学生的申请记录，用于显示申请状态标签
+    if (userStore.isStudent && userStore.isLoggedIn) {
+      await loadMyApplications()
+    }
   } catch (error) {
     ElMessage.error('加载项目列表失败')
     console.error(error)
   } finally {
     loading.value = false
+  }
+}
+
+/**
+ * 加载当前用户的申请记录
+ */
+async function loadMyApplications() {
+  try {
+    const res: any = await getMyApplications()
+    if (res.code === 200 && res.data) {
+      myApplications.value = res.data || []
+    }
+  } catch (error) {
+    console.error('加载我的申请记录失败', error)
   }
 }
 
@@ -357,6 +419,33 @@ onMounted(() => {
       }
 
       &.closed {
+        background-color: var(--zh-danger);
+      }
+    }
+
+    .status-group {
+      display: flex;
+      align-items: center;
+      gap: var(--zh-space-2);
+    }
+
+    .my-application-status {
+      padding: 3px 8px;
+      border-radius: 100px;
+      font-size: 10px;
+      font-weight: 600;
+      color: #fff;
+      background-color: var(--zh-text-tertiary);
+
+      &.pending {
+        background-color: var(--zh-accent);
+      }
+
+      &.approved {
+        background-color: var(--zh-success);
+      }
+
+      &.rejected {
         background-color: var(--zh-danger);
       }
     }
