@@ -53,6 +53,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '企业需求列表', roles: ['student', 'teacher', 'enterprise', 'admin'] }
       },
       {
+        path: 'research/demands/:id',
+        name: 'DemandDetail',
+        component: () => import('@/views/research/DemandDetail.vue'),
+        meta: { title: '企业需求详情', roles: ['student', 'teacher', 'enterprise', 'admin'] }
+      },
+      {
         path: 'research/applications',
         name: 'MyApplications',
         component: () => import('@/views/research/MyApplications.vue'),
@@ -62,13 +68,13 @@ const routes: RouteRecordRaw[] = [
         path: 'research/my-projects',
         name: 'MyProjects',
         component: () => import('@/views/research/MyProjects.vue'),
-        meta: { title: '我的项目', roles: ['teacher', 'admin'] }
+        meta: { title: '我的项目', roles: ['student', 'teacher', 'admin'] }
       },
       {
         path: 'research/project/publish',
         name: 'ProjectPublish',
         component: () => import('@/views/research/ProjectPublish.vue'),
-        meta: { title: '发布科研项目', roles: ['teacher', 'admin'] }
+        meta: { title: '发布科研项目', roles: ['student', 'teacher', 'admin'] }
       },
       {
         path: 'research/demand/publish',

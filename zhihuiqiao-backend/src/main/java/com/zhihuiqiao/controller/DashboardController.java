@@ -33,7 +33,7 @@ public class DashboardController {
     private final LearningResourceService learningResourceService;
 
     /**
-     * 获取全平台统计数据
+     * 获取全平台统计数据（后台管理专用，仅管理员可查看）
      */
     @Operation(summary = "获取全平台统计数据")
     @GetMapping("/stats")
@@ -80,6 +80,57 @@ public class DashboardController {
         stats.put("resourceCount", resourceCount);
         stats.put("bookingCount", bookingCount);
         stats.put("learningResourceCount", learningResourceCount);
+
+        return Result.success(stats);
+    }
+
+    /**
+     * 获取公开统计数据（首页展示，所有登录用户均可查看）
+     * 仅返回聚合后的平台运营数据，不包含敏感信息
+     */
+    @Operation(summary = "获取公开统计数据")
+    @GetMapping("/public-stats")
+    public Result<Map<String, Object>> getPublicStats() {
+        Map<String, Object> stats = new HashMap<>();
+
+        // 平台用户总数
+        long userCount = sysUserService.lambdaQuery()
+                .eq(com.zhihuiqiao.entity.SysUser::getStatus, 1)
+                .eq(com.zhihuiqiao.entity.SysUser::getDeleted, 0)
+                .count();
+
+        // 科研项目数（已审核通过的状态）
+        long projectCount = researchProjectService.lambdaQuery()
+                .ne(com.zhihuiqiao.entity.ResearchProject::getStatus, "pending_audit")
+                .ne(com.zhihuiqiao.entity.ResearchProject::getStatus, "draft")
+                .count();
+
+        // 企业需求数（进行中或已完成）
+        long demandCount = enterpriseDemandService.lambdaQuery()
+                .ne(com.zhihuiqiao.entity.EnterpriseDemand::getStatus, "closed")
+                .count();
+
+        // 闲置资源数（可借用状态）
+        long resourceCount = idleResourceService.lambdaQuery()
+                .eq(com.zhihuiqiao.entity.IdleResource::getStatus, "available")
+                .count();
+
+        // 学习资源数（已启用）
+        long learningResourceCount = learningResourceService.lambdaQuery()
+                .eq(com.zhihuiqiao.entity.LearningResource::getStatus, 1)
+                .count();
+
+        // 资源预约数（已通过的预约）
+        long bookingCount = resourceBookingService.lambdaQuery()
+                .eq(com.zhihuiqiao.entity.ResourceBooking::getStatus, "approved")
+                .count();
+
+        stats.put("userCount", userCount);
+        stats.put("projectCount", projectCount);
+        stats.put("demandCount", demandCount);
+        stats.put("resourceCount", resourceCount);
+        stats.put("learningResourceCount", learningResourceCount);
+        stats.put("bookingCount", bookingCount);
 
         return Result.success(stats);
     }

@@ -135,7 +135,7 @@ import {
   Grid,
   InfoFilled
 } from '@element-plus/icons-vue'
-import { getDashboardStats } from '@/api/dashboard'
+import { getPublicDashboardStats } from '@/api/dashboard'
 
 const router = useRouter()
 
@@ -231,7 +231,8 @@ const tips = [
  */
 async function loadStats() {
   try {
-    const res: any = await getDashboardStats()
+    // 首页使用公开统计接口，所有登录用户均可查看平台运营数据
+    const res: any = await getPublicDashboardStats()
     if (res.code === 200 && res.data) {
       Object.assign(stats, res.data)
     }

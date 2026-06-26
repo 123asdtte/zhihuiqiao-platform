@@ -38,7 +38,8 @@
             <el-menu-item index="/app/research/projects">科研项目</el-menu-item>
             <el-menu-item index="/app/research/demands">企业需求</el-menu-item>
             <el-menu-item v-if="userStore.isStudent || userStore.isAdmin" index="/app/research/applications">我的申请</el-menu-item>
-            <el-menu-item v-if="userStore.isTeacher || userStore.isAdmin" index="/app/research/my-projects">我的项目</el-menu-item>
+            <!-- 我的项目：学生、教师、管理员均可管理自己发布的项目 -->
+            <el-menu-item v-if="userStore.isStudent || userStore.isTeacher || userStore.isAdmin" index="/app/research/my-projects">我的项目</el-menu-item>
             <el-menu-item v-if="userStore.isStudent || userStore.isTeacher" index="/app/research/profile">科研画像</el-menu-item>
           </el-sub-menu>
 
@@ -62,7 +63,8 @@
             <el-menu-item index="/app/learning/resources">学习资源</el-menu-item>
             <!-- 学习中心仅学生与管理员可访问 -->
             <el-menu-item v-if="userStore.isStudent || userStore.isAdmin" index="/app/learning/center">学习中心</el-menu-item>
-            <el-menu-item index="/app/learning/publish">发布资源</el-menu-item>
+            <!-- 发布学习资源仅教师与管理员可访问 -->
+            <el-menu-item v-if="userStore.isTeacher || userStore.isAdmin" index="/app/learning/publish">发布资源</el-menu-item>
           </el-sub-menu>
 
           <template v-if="userStore.isAdmin">

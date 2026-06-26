@@ -79,8 +79,8 @@ public class ResearchController {
     @PostMapping("/project")
     public Result<Long> publishProject(@RequestBody @Valid ResearchProject project) {
         String roleType = getCurrentRoleType();
-        // 科研项目仅允许教师或管理员发布
-        if (!"teacher".equals(roleType) && !"admin".equals(roleType)) {
+        // 科研项目允许教师、学生或管理员发布，发布后需经管理员审核
+        if (!"teacher".equals(roleType) && !"student".equals(roleType) && !"admin".equals(roleType)) {
             return Result.error("无权发布科研项目");
         }
 
@@ -501,6 +501,11 @@ public class ResearchController {
         if (demand != null) {
             demand.setViews(demand.getViews() + 1);
             enterpriseDemandService.updateById(demand);
+            // 填充发布企业名称，便于前端展示
+            SysUser enterprise = sysUserService.getById(demand.getEnterpriseId());
+            if (enterprise != null) {
+                demand.setPublisherName(enterprise.getUsername());
+            }
         }
         return Result.success(demand);
     }

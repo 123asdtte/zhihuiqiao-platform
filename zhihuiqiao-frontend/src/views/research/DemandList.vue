@@ -205,11 +205,10 @@ function handlePageChange(page: number) {
 }
 
 /**
- * 跳转需求详情页（预留）
+ * 跳转需求详情页
  */
 function goToDetail(id: number) {
-  // 当前仅做提示，如需详情页可后续扩展
-  ElMessage.info(`查看需求详情 ID: ${id}`)
+  router.push(`/app/research/demands/${id}`)
 }
 
 onMounted(() => {

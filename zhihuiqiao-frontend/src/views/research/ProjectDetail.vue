@@ -273,22 +273,20 @@ const applyButtonText = computed(() => {
 })
 
 /**
- * 是否可以查看项目申请（仅教师/管理员身份，且为项目发布者或管理员可查看）
+ * 是否可以查看项目申请（管理员可查看所有，发布者可查看自己项目的申请）
  */
 const canViewApplications = computed(() => {
   if (!project.value) return false
   if (userStore.isAdmin) return true
-  if (!userStore.isTeacher) return false
   return project.value.publisherId === userStore.userInfo?.id
 })
 
 /**
- * 是否可删除项目（仅教师/管理员身份，且为项目发布者或管理员可删除）
+ * 是否可删除项目（管理员可删除所有，发布者可删除自己的项目）
  */
 const canDeleteProject = computed(() => {
   if (!project.value) return false
   if (userStore.isAdmin) return true
-  if (!userStore.isTeacher) return false
   return project.value.publisherId === userStore.userInfo?.id
 })
 
