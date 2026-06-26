@@ -316,7 +316,28 @@ public class ResearchController {
         LambdaQueryWrapper<ProjectApplication> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ProjectApplication::getProjectId, projectId)
                 .orderByDesc(ProjectApplication::getCreateTime);
-        return Result.success(projectApplicationService.list(wrapper));
+        List<ProjectApplication> applications = projectApplicationService.list(wrapper);
+
+        // 批量回填申请人姓名与项目名称，便于前端展示
+        if (!applications.isEmpty()) {
+            List<Long> applicantIds = applications.stream()
+                    .map(ProjectApplication::getApplicantId)
+                    .distinct()
+                    .toList();
+            java.util.Map<Long, String> applicantNameMap = new java.util.HashMap<>();
+            if (!applicantIds.isEmpty()) {
+                List<SysUser> users = sysUserService.listByIds(applicantIds);
+                applicantNameMap = users.stream()
+                        .collect(java.util.stream.Collectors.toMap(SysUser::getId,
+                                u -> StringUtils.hasText(u.getRealName()) ? u.getRealName() : u.getUsername()));
+            }
+            for (ProjectApplication application : applications) {
+                application.setProjectName(project.getProjectName());
+                application.setApplicantName(applicantNameMap.getOrDefault(application.getApplicantId(), "未知用户"));
+            }
+        }
+
+        return Result.success(applications);
     }
 
     @Operation(summary = "查询我的申请列表（管理员可查看全部申请）")
@@ -385,14 +406,16 @@ public class ResearchController {
             return Result.error("申请记录不存在");
         }
 
-        // 仅项目发布者或管理员可查看该申请详情
+        // 项目发布者、管理员或申请人本人可查看该申请详情
         ResearchProject project = researchProjectService.getById(application.getProjectId());
         if (project == null) {
             return Result.error("项目不存在");
         }
         Long currentUserId = getCurrentUserId();
         String currentRole = getCurrentRoleType();
-        if (!"admin".equals(currentRole) && !project.getPublisherId().equals(currentUserId)) {
+        boolean isPublisher = project.getPublisherId().equals(currentUserId);
+        boolean isApplicant = application.getApplicantId().equals(currentUserId);
+        if (!"admin".equals(currentRole) && !isPublisher && !isApplicant) {
             return Result.error("无权查看该申请");
         }
 

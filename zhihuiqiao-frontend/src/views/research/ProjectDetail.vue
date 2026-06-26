@@ -209,7 +209,7 @@ import { reactive, ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { View, Calendar, ArrowLeft } from '@element-plus/icons-vue'
-import { getProjectDetail, applyProject, getProjectApplications, auditApplication, deleteProject } from '@/api/research'
+import { getProjectDetail, applyProject, getProjectApplications, getMyApplications, auditApplication, deleteProject } from '@/api/research'
 import { useUserStore } from '@/stores/user'
 
 const route = useRoute()
@@ -232,6 +232,9 @@ const applyFormRef = ref<any>(null)
 const applicationsDrawerVisible = ref(false)
 const applicationsLoading = ref(false)
 const applications = ref<any[]>([])
+
+// 当前用户对该项目的申请记录（用于判断是否可以再次申请）
+const myApplication = ref<any>(null)
 
 const applyRules = {
   applyReason: [
@@ -259,7 +262,10 @@ function statusText(status: string) {
 const canApply = computed(() => {
   if (!project.value) return false
   if (project.value.status !== 'recruiting') return false
-  return userStore.isStudent
+  if (!userStore.isStudent) return false
+  // 已存在非拒绝状态的申请时，禁止再次申请
+  if (myApplication.value && myApplication.value.status !== 'rejected') return false
+  return true
 })
 
 /**
@@ -269,6 +275,11 @@ const applyButtonText = computed(() => {
   if (!project.value) return '申请加入'
   if (project.value.status !== 'recruiting') return '当前项目不招募成员'
   if (!userStore.isStudent) return '仅学生可申请加入'
+  if (myApplication.value) {
+    if (myApplication.value.status === 'pending') return '申请审核中'
+    if (myApplication.value.status === 'approved') return '已加入该项目'
+    if (myApplication.value.status === 'rejected') return '申请已被拒绝'
+  }
   return '申请加入'
 })
 
@@ -336,11 +347,29 @@ async function loadProjectDetail() {
   try {
     const res: any = await getProjectDetail(projectId)
     project.value = res.data
+    // 项目加载完成后，查询当前用户对该项目的申请记录
+    if (userStore.isStudent && userStore.isLoggedIn) {
+      await loadMyApplication()
+    }
   } catch (error) {
     ElMessage.error('加载项目详情失败')
     console.error(error)
   } finally {
     loading.value = false
+  }
+}
+
+/**
+ * 加载当前用户对当前项目的申请记录
+ */
+async function loadMyApplication() {
+  try {
+    const res: any = await getMyApplications()
+    if (res.code === 200 && res.data) {
+      myApplication.value = res.data.find((item: any) => String(item.projectId) === projectId)
+    }
+  } catch (error) {
+    console.error('加载我的申请记录失败', error)
   }
 }
 
