@@ -141,6 +141,7 @@
 
 <script setup lang="ts">
 import { reactive, ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Bell,
@@ -159,7 +160,9 @@ import {
   markNotificationAsRead,
   markAllNotificationsAsRead
 } from '@/api/notification'
+import { getApplicationById } from '@/api/research'
 
+const router = useRouter()
 const notificationStore = useNotificationStore()
 
 // 通知列表
@@ -248,7 +251,7 @@ function handlePageChange(page: number) {
   loadNotifications()
 }
 
-// 点击通知项：标记为已读
+// 点击通知项：标记为已读，并根据通知类型跳转对应业务页面
 async function handleItemClick(item: any) {
   if (item.isRead === 0) {
     try {
@@ -259,6 +262,25 @@ async function handleItemClick(item: any) {
       }
     } catch (error) {
       console.error('标记已读失败', error)
+    }
+  }
+
+  // 项目申请通知：根据申请ID查询所属项目ID，跳转到项目详情页处理申请
+  if (item.type === 'application' && item.relatedId) {
+    try {
+      const res: any = await getApplicationById(item.relatedId)
+      if (res.code === 200 && res.data?.projectId) {
+        // 跳转到项目详情页并自动打开申请管理抽屉，方便发布者直接处理申请
+        router.push({
+          path: `/app/research/projects/${res.data.projectId}`,
+          query: { openApplications: '1' }
+        })
+      } else {
+        ElMessage.warning('无法定位到对应项目')
+      }
+    } catch (error) {
+      console.error('查询申请详情失败', error)
+      ElMessage.error('跳转失败，请手动前往我的项目处理')
     }
   }
 }

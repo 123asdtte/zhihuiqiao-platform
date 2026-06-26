@@ -53,41 +53,6 @@
         </el-form-item>
       </div>
 
-      <!-- 个人资料 -->
-      <div class="form-section">
-        <h3 class="section-title">
-          <span class="section-marker"></span>
-          个人资料
-        </h3>
-
-        <el-form-item label="真实姓名" prop="realName">
-          <el-input
-            v-model="registerForm.realName"
-            placeholder="请输入真实姓名"
-            :prefix-icon="UserFilled"
-            clearable
-          />
-        </el-form-item>
-
-        <el-form-item label="邮箱" prop="email">
-          <el-input
-            v-model="registerForm.email"
-            placeholder="请输入邮箱"
-            :prefix-icon="Message"
-            clearable
-          />
-        </el-form-item>
-
-        <el-form-item label="手机号" prop="phone">
-          <el-input
-            v-model="registerForm.phone"
-            placeholder="请输入手机号"
-            :prefix-icon="Phone"
-            clearable
-          />
-        </el-form-item>
-      </div>
-
       <!-- 角色选择 -->
       <div class="form-section">
         <h3 class="section-title">
@@ -166,9 +131,6 @@ import { ElMessage } from 'element-plus'
 import {
   User,
   Lock,
-  UserFilled,
-  Message,
-  Phone,
   Reading,
   User as TeacherIcon,
   OfficeBuilding
@@ -177,14 +139,11 @@ import { register } from '@/api/auth'
 
 const router = useRouter()
 
-// 注册表单
+// 注册表单（个人资料中的真实姓名、邮箱、手机号改为非必填，注册时无需填写）
 const registerForm = reactive({
   username: '',
   password: '',
   confirmPassword: '',
-  realName: '',
-  email: '',
-  phone: '',
   roleType: '',
   department: '',
   major: '',
@@ -208,20 +167,6 @@ function validateConfirmPassword(_rule: any, value: string, callback: Function) 
   }
 }
 
-// 自定义校验：手机号格式
-function validatePhone(_rule: any, value: string, callback: Function) {
-  if (!value) {
-    callback()
-    return
-  }
-  const phoneRegex = /^1[3-9]\d{9}$/
-  if (!phoneRegex.test(value)) {
-    callback(new Error('请输入正确的手机号'))
-  } else {
-    callback()
-  }
-}
-
 // 表单校验规则
 const registerRules = {
   username: [
@@ -235,15 +180,6 @@ const registerRules = {
   confirmPassword: [
     { required: true, message: '请再次输入密码', trigger: 'blur' },
     { validator: validateConfirmPassword, trigger: 'blur' }
-  ],
-  realName: [{ required: true, message: '请输入真实姓名', trigger: 'blur' }],
-  email: [
-    { required: true, message: '请输入邮箱', trigger: 'blur' },
-    { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
-  ],
-  phone: [
-    { required: true, message: '请输入手机号', trigger: 'blur' },
-    { validator: validatePhone, trigger: 'blur' }
   ],
   roleType: [{ required: true, message: '请选择角色类型', trigger: 'change' }],
   department: [{ required: true, message: '请输入院系', trigger: 'blur' }],
@@ -279,14 +215,11 @@ async function handleRegister() {
 
     loading.value = true
     try {
-      // 组装提交数据，移除确认密码字段
+      // 组装提交数据，移除确认密码字段与个人资料字段（注册时无需填写）
       const submitData: any = {
         username: registerForm.username,
         password: registerForm.password,
-        roleType: registerForm.roleType,
-        realName: registerForm.realName,
-        email: registerForm.email,
-        phone: registerForm.phone
+        roleType: registerForm.roleType
       }
 
       // 根据角色补充对应字段

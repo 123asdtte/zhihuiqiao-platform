@@ -142,6 +142,17 @@ export function applyProject(data: {
 }
 
 /**
+ * 根据申请ID查询项目申请详情
+ * @param id 申请ID
+ */
+export function getApplicationById(id: number | string) {
+  return request({
+    url: `/api/research/application/${id}`,
+    method: 'get'
+  })
+}
+
+/**
  * 查询项目的申请列表
  * @param projectId 项目ID
  */

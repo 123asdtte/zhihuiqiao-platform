@@ -377,6 +377,36 @@ public class ResearchController {
         return Result.success(applications);
     }
 
+    @Operation(summary = "根据ID查询项目申请详情")
+    @GetMapping("/application/{id}")
+    public Result<ProjectApplication> getApplicationById(@PathVariable Long id) {
+        ProjectApplication application = projectApplicationService.getById(id);
+        if (application == null) {
+            return Result.error("申请记录不存在");
+        }
+
+        // 仅项目发布者或管理员可查看该申请详情
+        ResearchProject project = researchProjectService.getById(application.getProjectId());
+        if (project == null) {
+            return Result.error("项目不存在");
+        }
+        Long currentUserId = getCurrentUserId();
+        String currentRole = getCurrentRoleType();
+        if (!"admin".equals(currentRole) && !project.getPublisherId().equals(currentUserId)) {
+            return Result.error("无权查看该申请");
+        }
+
+        // 回填项目名称与申请人姓名，便于前端展示
+        application.setProjectName(project.getProjectName());
+        SysUser applicant = sysUserService.getById(application.getApplicantId());
+        if (applicant != null) {
+            application.setApplicantName(StringUtils.hasText(applicant.getRealName())
+                    ? applicant.getRealName() : applicant.getUsername());
+        }
+
+        return Result.success(application);
+    }
+
     @OperationLogAnnotation(module = "科研撮合", operation = "审核项目申请")
     @Operation(summary = "审核项目申请")
     @PutMapping("/application/{id}/audit")

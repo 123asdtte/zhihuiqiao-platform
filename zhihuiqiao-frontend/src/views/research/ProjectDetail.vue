@@ -467,7 +467,12 @@ async function handleDeleteProject() {
 }
 
 onMounted(() => {
-  loadProjectDetail()
+  loadProjectDetail().then(() => {
+    // 若从通知中心点击项目申请通知跳转过来，自动打开申请管理抽屉
+    if (route.query.openApplications === '1' && canViewApplications.value) {
+      showApplicationsDrawer()
+    }
+  })
 })
 </script>
 
