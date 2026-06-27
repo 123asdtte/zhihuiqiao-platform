@@ -68,4 +68,12 @@ public class ResearchProjectServiceImpl extends ServiceImpl<ResearchProjectMappe
         // 6. 删除项目
         return removeById(id);
     }
+
+    @Override
+    public List<ResearchProject> listRecruitingProjects() {
+        LambdaQueryWrapper<ResearchProject> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ResearchProject::getStatus, "recruiting")
+                .orderByDesc(ResearchProject::getCreateTime);
+        return list(wrapper);
+    }
 }
