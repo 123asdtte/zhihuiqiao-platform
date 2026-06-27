@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zhihuiqiao.common.Result;
+import com.zhihuiqiao.dto.AiChatRequest;
 import com.zhihuiqiao.entity.ResearchProject;
 import com.zhihuiqiao.entity.ResearcherProfile;
 import com.zhihuiqiao.entity.SysUser;
@@ -19,6 +20,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -243,5 +246,83 @@ public class AiRecommendController {
      */
     private String defaultIfEmpty(String value, String defaultValue) {
         return StringUtils.hasText(value) ? value : defaultValue;
+    }
+
+    @Operation(summary = "AI 通用对话", description = "基于 DeepSeek AI 的通用问答助手")
+    @PostMapping("/chat")
+    public Result<String> chat(@RequestBody AiChatRequest request) {
+        Long userId = getCurrentUserId();
+        if (userId == null) {
+            return Result.error("请先登录");
+        }
+
+        if (!StringUtils.hasText(request.getQuestion())) {
+            return Result.success("你好，有什么可以帮你的吗？");
+        }
+
+        String question = request.getQuestion();
+
+        // 如果用户咨询推荐科研项目，走本地推荐接口生成结果
+        if (isRecommendQuestion(question)) {
+            return recommendByLocal(userId);
+        }
+
+        String systemPrompt = "你是\"智汇桥\"产学研平台的智能助手。平台主要功能包括：科研项目发布与组队、企业需求对接、学习资源分享、闲置资源预约等。请用简洁、友好、专业的中文回答用户问题。如果用户询问平台操作，请尽量引导其使用对应功能模块。";
+
+        try {
+            String answer = deepSeekService.chat(systemPrompt, question);
+            return Result.success(answer);
+        } catch (Exception e) {
+            log.error("AI 对话失败", e);
+            return Result.success("抱歉，AI 助手暂时无法回答，请稍后再试。");
+        }
+    }
+
+    /**
+     * 判断用户问题是否为科研项目推荐意图
+     */
+    private boolean isRecommendQuestion(String question) {
+        String lower = question.toLowerCase();
+        String[] keywords = {"推荐", "科研项目", "推荐项目", "适合我的项目", "项目推荐"};
+        for (String keyword : keywords) {
+            if (lower.contains(keyword)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 本地生成项目推荐文本
+     */
+    private Result<String> recommendByLocal(Long userId) {
+        ResearcherProfile profile = researcherProfileService.getByUserId(userId);
+        List<ResearchProject> projects = researchProjectService.listRecruitingProjects();
+        if (projects.isEmpty()) {
+            return Result.success("当前没有正在招募中的科研项目，你可以稍后再来问我，或者先去浏览企业需求和学习资源。");
+        }
+
+        List<Map<String, Object>> fallback = buildFallbackResult(projects, profile);
+        if (fallback.isEmpty()) {
+            return Result.success("当前没有合适的推荐项目，建议你完善科研画像后再来获取个性化推荐。");
+        }
+
+        StringBuilder sb = new StringBuilder("根据你的科研画像，为你推荐以下招募中的科研项目：\n\n");
+        int index = 1;
+        for (Map<String, Object> item : fallback) {
+            ResearchProject project = (ResearchProject) item.get("project");
+            String reason = (String) item.get("reason");
+            sb.append(index).append(". ").append(project.getProjectName()).append("\n");
+            sb.append("   ").append(reason).append("\n");
+            sb.append("   简介：").append(defaultIfEmpty(project.getProjectDescription(), "暂无简介")).append("\n");
+            sb.append("   类型：").append(defaultIfEmpty(project.getProjectType(), "未分类")).append(" | 领域：")
+              .append(defaultIfEmpty(project.getResearchFields(), "未填写")).append("\n\n");
+            index++;
+            if (index > 5) {
+                break;
+            }
+        }
+        sb.append("你可以点击卡片查看详情，或直接在导航中进入“科研项目”模块浏览全部项目。");
+        return Result.success(sb.toString());
     }
 }

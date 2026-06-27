@@ -41,7 +41,6 @@
             <!-- 我的项目：学生、教师、管理员均可管理自己发布的项目 -->
             <el-menu-item v-if="userStore.isStudent || userStore.isTeacher || userStore.isAdmin" index="/app/research/my-projects">我的项目</el-menu-item>
             <el-menu-item v-if="userStore.isStudent || userStore.isTeacher" index="/app/research/profile">科研画像</el-menu-item>
-            <el-menu-item v-if="userStore.isStudent || userStore.isTeacher" index="/app/research/ai-recommend">AI 项目推荐</el-menu-item>
           </el-sub-menu>
 
           <!-- 资源流转：企业账号无对应权限，隐藏整组菜单 -->
@@ -148,6 +147,9 @@
           </transition>
         </router-view>
       </main>
+
+      <!-- AI 智能助手：仅登录后显示 -->
+      <AiAssistant v-if="userStore.isLoggedIn" />
     </div>
   </div>
 </template>
@@ -173,6 +175,7 @@ import {
   SwitchButton
 } from '@element-plus/icons-vue'
 import { ElMessageBox } from 'element-plus'
+import AiAssistant from '@/components/AiAssistant.vue'
 
 const router = useRouter()
 const route = useRoute()

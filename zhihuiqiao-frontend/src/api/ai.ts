@@ -13,3 +13,15 @@ export function getRecommendedProjects() {
     method: 'get'
   })
 }
+
+/**
+ * AI 通用对话
+ * @param question 用户问题
+ */
+export function chatWithAi(question: string) {
+  return request({
+    url: '/api/ai/chat',
+    method: 'post',
+    data: { question }
+  })
+}

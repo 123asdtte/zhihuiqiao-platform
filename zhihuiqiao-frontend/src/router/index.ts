@@ -89,12 +89,6 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '科研画像', roles: ['student', 'teacher'] }
       },
       {
-        path: 'research/ai-recommend',
-        name: 'AiRecommend',
-        component: () => import('@/views/research/AiRecommend.vue'),
-        meta: { title: 'AI 科研项目推荐', roles: ['student', 'teacher'] }
-      },
-      {
         path: 'resource/list',
         name: 'ResourceList',
         component: () => import('@/views/resource/ResourceList.vue'),
