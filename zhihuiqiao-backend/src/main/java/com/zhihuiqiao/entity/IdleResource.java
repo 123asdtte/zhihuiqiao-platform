@@ -33,6 +33,11 @@ public class IdleResource {
     private String resourceType;
 
     /**
+     * 交易模式：borrow-借用 transfer-转让
+     */
+    private String tradeMode;
+
+    /**
      * 所有者ID
      */
     private Long ownerId;
@@ -63,7 +68,17 @@ public class IdleResource {
     private BigDecimal rentalPrice;
 
     /**
-     * 状态：available/rented/unavailable
+     * 转让期望价格，0 表示免费
+     */
+    private BigDecimal expectPrice;
+
+    /**
+     * 联系方式（微信/手机号/交易地点）
+     */
+    private String contactInfo;
+
+    /**
+     * 状态：available/rented/unavailable/transferred
      */
     private String status;
 

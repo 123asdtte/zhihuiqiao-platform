@@ -52,6 +52,26 @@ public class ResourceTransferLog {
     private String remark;
 
     /**
+     * 转出方对转入方评分
+     */
+    private Integer fromUserRating;
+
+    /**
+     * 转出方对转入方评价
+     */
+    private String fromUserComment;
+
+    /**
+     * 转入方对转出方评分
+     */
+    private Integer toUserRating;
+
+    /**
+     * 转入方对转出方评价
+     */
+    private String toUserComment;
+
+    /**
      * 创建时间
      */
     private LocalDateTime createTime;
