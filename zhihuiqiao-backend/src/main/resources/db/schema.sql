@@ -208,13 +208,16 @@ CREATE TABLE IF NOT EXISTS idle_resource (
     id BIGINT NOT NULL AUTO_INCREMENT COMMENT '资源ID',
     resource_name VARCHAR(200) NOT NULL COMMENT '资源名称',
     resource_type VARCHAR(50) NOT NULL COMMENT '资源类型：实验设备/图书资料/办公用品/电子数码/场地空间/其他',
+    trade_mode VARCHAR(20) DEFAULT 'borrow' COMMENT '交易模式：borrow-借用 transfer-转让',
     owner_id BIGINT NOT NULL COMMENT '所有者ID',
     description TEXT COMMENT '资源描述',
     images TEXT COMMENT '图片URL，多个用逗号分隔',
     location VARCHAR(200) DEFAULT NULL COMMENT '存放位置',
     original_price DECIMAL(10,2) DEFAULT NULL COMMENT '原价',
     rental_price DECIMAL(10,2) DEFAULT NULL COMMENT '租赁价格/天',
-    status VARCHAR(50) DEFAULT 'available' COMMENT '状态：available/rented/unavailable',
+    expect_price DECIMAL(10,2) DEFAULT NULL COMMENT '转让期望价格，0 表示免费',
+    contact_info VARCHAR(255) DEFAULT NULL COMMENT '联系方式（微信/手机号/交易地点）',
+    status VARCHAR(50) DEFAULT 'available' COMMENT '状态：available/rented/unavailable/transferred',
     borrow_rules TEXT COMMENT '借用规则',
     views INT DEFAULT 0,
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -256,10 +259,31 @@ CREATE TABLE IF NOT EXISTS resource_transfer_log (
     to_user_id BIGINT NOT NULL COMMENT '转入方ID',
     transfer_type VARCHAR(50) NOT NULL COMMENT '流转类型：borrow/return/transfer',
     remark TEXT COMMENT '备注',
+    from_user_rating INT DEFAULT NULL COMMENT '转出方对转入方评分',
+    from_user_comment VARCHAR(500) DEFAULT NULL COMMENT '转出方对转入方评价',
+    to_user_rating INT DEFAULT NULL COMMENT '转入方对转出方评分',
+    to_user_comment VARCHAR(500) DEFAULT NULL COMMENT '转入方对转出方评价',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY idx_resource (resource_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='资源流转记录表';
+
+-- 资源转让意向表
+CREATE TABLE IF NOT EXISTS resource_transfer_request (
+    id BIGINT NOT NULL AUTO_INCREMENT COMMENT '意向ID',
+    resource_id BIGINT NOT NULL COMMENT '资源ID',
+    buyer_id BIGINT NOT NULL COMMENT '买家ID',
+    seller_id BIGINT NOT NULL COMMENT '卖家ID',
+    status VARCHAR(50) NOT NULL DEFAULT 'pending' COMMENT '状态：pending/accepted/rejected/cancelled',
+    message VARCHAR(500) DEFAULT NULL COMMENT '买家留言',
+    contact_info VARCHAR(255) DEFAULT NULL COMMENT '买家联系方式',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_resource_buyer (resource_id, buyer_id),
+    KEY idx_buyer (buyer_id),
+    KEY idx_seller (seller_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='资源转让意向表';
 
 -- 资源损坏赔偿记录表
 CREATE TABLE IF NOT EXISTS resource_damage_record (
