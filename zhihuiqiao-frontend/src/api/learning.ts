@@ -103,3 +103,30 @@ export function deleteLearningRecord(id: number | string) {
     method: 'delete'
   })
 }
+
+/**
+ * 更新学习笔记
+ * @param id 记录ID
+ * @param note 笔记内容
+ */
+export function updateLearningNote(id: number | string, note: string) {
+  return request({
+    url: `/api/learning/record/${id}/note`,
+    method: 'put',
+    data: { note }
+  })
+}
+
+/**
+ * 提交或更新学习评价
+ * @param id 记录ID
+ * @param rating 评分 1-5
+ * @param comment 评价内容
+ */
+export function updateLearningReview(id: number | string, rating: number, comment: string) {
+  return request({
+    url: `/api/learning/record/${id}/review`,
+    method: 'put',
+    data: { rating, comment }
+  })
+}

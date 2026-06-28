@@ -83,6 +83,115 @@
       </div>
     </section>
 
+    <!-- 画像驱动推荐：基于科研画像 -->
+    <section v-if="recommendedProjects.length > 0" v-loading="discoveryLoading" class="recommend-section">
+      <h2 class="zh-section-title">
+        <span class="section-icon"><Star /></span>
+        为你推荐
+        <span class="section-subtitle">基于你的科研画像与兴趣</span>
+      </h2>
+      <div class="recommend-grid">
+        <div
+          v-for="item in recommendedProjects"
+          :key="item.project?.id"
+          class="recommend-card"
+          @click="router.push(`/app/research/projects/${item.project.id}`)"
+        >
+          <div class="recommend-reason">{{ item.reason }}</div>
+          <div class="recommend-title">{{ item.project.projectName }}</div>
+          <p class="recommend-desc">{{ item.project.projectDescription || '暂无简介' }}</p>
+          <div class="recommend-meta">
+            <el-tag size="small" type="info">{{ item.project.projectType || '未分类' }}</el-tag>
+            <span>{{ item.project.publisherName || '未知发布人' }}</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 热门推荐 -->
+    <section v-loading="discoveryLoading" class="hot-section">
+      <h2 class="zh-section-title">
+        <span class="section-icon"><Star /></span>
+        热门推荐
+        <span class="section-subtitle">平台内浏览量最高的项目与资源</span>
+      </h2>
+      <div class="hot-grid">
+        <div class="hot-column">
+          <h4 class="hot-column-title"><el-icon><Search /></el-icon> 热门项目</h4>
+          <div class="hot-list">
+            <div
+              v-for="(item, index) in hotProjects"
+              :key="item.id"
+              class="hot-item"
+              @click="router.push(`/app/research/projects/${item.id}`)"
+            >
+              <span class="hot-rank" :class="{ top: index < 3 }">{{ index + 1 }}</span>
+              <div class="hot-content">
+                <div class="hot-title">{{ item.projectName }}</div>
+                <div class="hot-info">{{ item.views || 0 }} 次浏览 · {{ formatDate(item.createTime) }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="hot-column">
+          <h4 class="hot-column-title"><el-icon><Box /></el-icon> 热门资源</h4>
+          <div class="hot-list">
+            <div
+              v-for="(item, index) in hotResources"
+              :key="item.id"
+              class="hot-item"
+              @click="router.push(`/app/resource/${item.id}`)"
+            >
+              <span class="hot-rank" :class="{ top: index < 3 }">{{ index + 1 }}</span>
+              <div class="hot-content">
+                <div class="hot-title">{{ item.resourceName }}</div>
+                <div class="hot-info">{{ item.views || 0 }} 次浏览 · {{ formatDate(item.createTime) }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 最新发布 -->
+    <section v-loading="discoveryLoading" class="latest-section">
+      <h2 class="zh-section-title">
+        <span class="section-icon"><TrendCharts /></span>
+        最新发布
+        <span class="section-subtitle">发现最新上线的机会与资源</span>
+      </h2>
+      <div class="latest-grid">
+        <div class="latest-column">
+          <h4 class="latest-column-title"><el-icon><OfficeBuilding /></el-icon> 企业需求</h4>
+          <div class="latest-list">
+            <div
+              v-for="item in latestDemands"
+              :key="item.id"
+              class="latest-item"
+              @click="router.push(`/app/research/demands/${item.id}`)"
+            >
+              <div class="latest-title">{{ item.demandTitle }}</div>
+              <div class="latest-info">{{ item.publisherName || '未知企业' }} · {{ formatDate(item.createTime) }}</div>
+            </div>
+          </div>
+        </div>
+        <div class="latest-column">
+          <h4 class="latest-column-title"><el-icon><Reading /></el-icon> 学习资源</h4>
+          <div class="latest-list">
+            <div
+              v-for="item in latestLearning"
+              :key="item.id"
+              class="latest-item"
+              @click="router.push(`/app/learning/detail/${item.id}`)"
+            >
+              <div class="latest-title">{{ item.resourceName }}</div>
+              <div class="latest-info">{{ item.resourceType || '未分类' }} · {{ formatDate(item.createTime) }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- 公告与推荐 -->
     <section class="bottom-section">
       <div class="notice-panel">
@@ -118,7 +227,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, computed, onMounted } from 'vue'
+import { reactive, computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
@@ -133,11 +242,19 @@ import {
   ArrowRight,
   Bell,
   Grid,
-  InfoFilled
+  InfoFilled,
+  Star,
+  TrendCharts
 } from '@element-plus/icons-vue'
 import { getPublicDashboardStats } from '@/api/dashboard'
+import { getRecommendedProjects } from '@/api/ai'
+import { getProjectList, getDemandList } from '@/api/research'
+import { getResourceList } from '@/api/resource'
+import { getLearningResourceList } from '@/api/learning'
+import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
+const userStore = useUserStore()
 
 // 统计数据
 const stats = reactive({
@@ -148,6 +265,14 @@ const stats = reactive({
   learningResourceCount: 0,
   bookingCount: 0
 })
+
+// 推荐与发现数据
+const recommendedProjects = ref<any[]>([])
+const hotProjects = ref<any[]>([])
+const hotResources = ref<any[]>([])
+const latestLearning = ref<any[]>([])
+const latestDemands = ref<any[]>([])
+const discoveryLoading = ref(false)
 
 // 统计项配置
 const statItems = computed(() => [
@@ -242,8 +367,66 @@ async function loadStats() {
   }
 }
 
+/**
+ * 加载推荐与发现数据
+ * 包含画像驱动推荐、热门项目、热门资源、最新学习资源、最新企业需求
+ */
+async function loadDiscovery() {
+  discoveryLoading.value = true
+  try {
+    // 仅学生与教师展示画像驱动推荐
+    if (userStore.isStudent || userStore.isTeacher || userStore.isAdmin) {
+      const recRes: any = await getRecommendedProjects()
+      if (recRes?.code === 200) {
+        recommendedProjects.value = (recRes.data || []).slice(0, 4)
+      }
+    }
+
+    const [projectRes, resourceRes, learningRes, demandRes] = await Promise.allSettled([
+      getProjectList({ pageNum: 1, pageSize: 6 }),
+      getResourceList({ pageNum: 1, pageSize: 6 }),
+      getLearningResourceList({ pageNum: 1, pageSize: 6 }),
+      getDemandList({ pageNum: 1, pageSize: 6 })
+    ])
+
+    hotProjects.value = sortByViews(extractRecords(projectRes)).slice(0, 4)
+    hotResources.value = sortByViews(extractRecords(resourceRes)).slice(0, 4)
+    latestLearning.value = extractRecords(learningRes).slice(0, 4)
+    latestDemands.value = extractRecords(demandRes).slice(0, 4)
+  } catch (error) {
+    console.error('加载推荐内容失败', error)
+  } finally {
+    discoveryLoading.value = false
+  }
+}
+
+/**
+ * 从 Promise.allSettled 结果中提取 records 列表
+ */
+function extractRecords(result: PromiseSettledResult<any>) {
+  if (result.status === 'fulfilled' && result.value?.code === 200) {
+    return result.value.data?.records || []
+  }
+  return []
+}
+
+/**
+ * 按浏览量排序，用于热门推荐
+ */
+function sortByViews(list: any[]) {
+  return [...list].sort((a, b) => (b.views || 0) - (a.views || 0))
+}
+
+/**
+ * 格式化日期
+ */
+function formatDate(time: string) {
+  return time ? new Date(time).toLocaleDateString('zh-CN') : '-'
+}
+
 onMounted(() => {
   loadStats()
+  loadDiscovery()
 })
 </script>
 

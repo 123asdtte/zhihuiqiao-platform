@@ -14,6 +14,7 @@ export interface UserInfo {
   grade: string
   title: string
   companyName: string
+  creditScore?: number
 }
 
 // localStorage 中 userInfo 的 key

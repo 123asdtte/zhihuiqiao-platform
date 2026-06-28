@@ -27,12 +27,13 @@ public interface NotificationService extends IService<Notification> {
     /**
      * 分页查询用户的通知列表
      *
-     * @param userId   用户ID
-     * @param page     分页对象
+     * @param page       分页对象
+     * @param userId     用户ID
      * @param onlyUnread 是否只查询未读
+     * @param type       通知类型筛选
      * @return 分页结果
      */
-    IPage<Notification> listUserNotifications(Page<Notification> page, Long userId, Boolean onlyUnread);
+    IPage<Notification> listUserNotifications(Page<Notification> page, Long userId, Boolean onlyUnread, String type);
 
     /**
      * 获取用户未读通知数量

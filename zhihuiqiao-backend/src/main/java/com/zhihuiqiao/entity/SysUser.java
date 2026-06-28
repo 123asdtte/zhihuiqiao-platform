@@ -36,6 +36,8 @@ public class SysUser {
 
     private String companyName;
 
+    private Integer creditScore;
+
     private Integer status;
 
     @TableField(fill = FieldFill.INSERT)

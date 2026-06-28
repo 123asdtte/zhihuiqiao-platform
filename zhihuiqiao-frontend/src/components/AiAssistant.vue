@@ -77,7 +77,7 @@
 import { ref, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import { ChatDotRound, Cpu, User, Close, Loading, Promotion } from '@element-plus/icons-vue'
-import { chatWithAi } from '@/api/ai'
+import { chatWithAi, getRecommendedProjects } from '@/api/ai'
 
 interface Message {
   role: 'user' | 'ai'
@@ -122,11 +122,25 @@ async function sendMessage() {
   loading.value = true
 
   try {
-    const res: any = await chatWithAi(question)
-    if (res.code === 200 && res.data) {
-      messages.value.push({ role: 'ai', content: res.data })
+    // 科研项目推荐类问题，调用 DeepSeek 智能推荐接口
+    if (isRecommendQuestion(question)) {
+      const res: any = await getRecommendedProjects()
+      if (res.code === 200 && res.data && res.data.length > 0) {
+        const reply = formatRecommendations(res.data)
+        messages.value.push({ role: 'ai', content: reply })
+      } else {
+        messages.value.push({
+          role: 'ai',
+          content: '当前没有合适的推荐项目，建议你完善个人资料和科研画像后再来获取个性化推荐。'
+        })
+      }
     } else {
-      messages.value.push({ role: 'ai', content: '抱歉，我暂时无法回答这个问题。' })
+      const res: any = await chatWithAi(question)
+      if (res.code === 200 && res.data) {
+        messages.value.push({ role: 'ai', content: res.data })
+      } else {
+        messages.value.push({ role: 'ai', content: '抱歉，我暂时无法回答这个问题。' })
+      }
     }
   } catch (error) {
     ElMessage.error('AI 助手请求失败')
@@ -135,6 +149,28 @@ async function sendMessage() {
     loading.value = false
     scrollToBottom()
   }
+}
+
+// 判断是否为科研项目推荐意图
+function isRecommendQuestion(question: string): boolean {
+  const lower = question.toLowerCase()
+  const keywords = ['推荐', '科研项目', '推荐项目', '适合我的项目', '项目推荐']
+  return keywords.some((keyword) => lower.includes(keyword))
+}
+
+// 格式化推荐结果：展示推荐理由，而不仅是固定文案
+function formatRecommendations(list: any[]): string {
+  let sb = '根据你的个人信息和科研画像，为你推荐以下科研项目：\n\n'
+  list.forEach((item, index) => {
+    const project = item.project || item
+    const reason = item.reason || '与你匹配度较高'
+    sb += `${index + 1}. ${project.projectName || '未命名项目'}\n`
+    sb += `   推荐理由：${reason}\n`
+    sb += `   简介：${project.projectDescription || '暂无简介'}\n`
+    sb += `   类型：${project.projectType || '未分类'} | 领域：${project.researchFields || '未填写'}\n\n`
+  })
+  sb += '你可以点击卡片查看详情，或进入“科研项目”模块浏览全部项目。'
+  return sb
 }
 
 function sendQuickQuestion(question: string) {

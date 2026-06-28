@@ -136,15 +136,47 @@
                 size="small"
                 @click="handleReturn(row.id)"
               >
-                归还
+                申请归还
+              </el-button>
+              <el-button
+                v-if="row.status === 'return_request' && isOwner"
+                type="primary"
+                size="small"
+                @click="handleConfirmReturn(row.id)"
+              >
+                确认归还
               </el-button>
             </template>
           </el-table-column>
         </el-table>
       </el-card>
+
+      <!-- 资源日历入口 -->
+      <el-card class="calendar-card" shadow="never">
+        <template #header>
+          <div class="card-header">
+            <span>资源可预约日历</span>
+            <el-button type="primary" size="small" @click="openCalendarDialog">查看日历</el-button>
+          </div>
+        </template>
+        <p class="calendar-hint">绿色表示可预约，红色表示已被占用。点击右上角按钮查看完整日历。</p>
+      </el-card>
     </div>
 
     <el-empty v-else description="资源不存在或已删除" />
+
+    <!-- 资源日历弹窗 -->
+    <el-dialog v-model="calendarDialogVisible" title="资源可预约日历" width="700px">
+      <el-calendar v-model="calendarMonth" @input="handleCalendarMonthChange">
+        <template #date-cell="{ data }">
+          <div class="calendar-cell" :class="{ available: isDateAvailable(data.date), unavailable: !isDateAvailable(data.date) }">
+            <span>{{ data.day.split('-').pop() }}</span>
+            <span v-if="isDateAvailable(data.date)" class="status-text">可约</span>
+            <span v-else class="status-text">已约</span>
+          </div>
+        </template>
+      </el-calendar>
+    </el-dialog>
 
     <!-- 预约弹窗 -->
     <el-dialog v-model="bookingDialogVisible" title="资源预约" width="500px">
@@ -189,7 +221,15 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowLeft, Picture } from '@element-plus/icons-vue'
-import { getResourceDetail, getResourceBookings, submitBooking, auditBooking, returnResource } from '@/api/resource'
+import {
+  getResourceDetail,
+  getResourceBookings,
+  submitBooking,
+  auditBooking,
+  requestReturn,
+  confirmReturn,
+  getResourceCalendar
+} from '@/api/resource'
 import { useUserStore } from '@/stores/user'
 
 const route = useRoute()
@@ -217,6 +257,11 @@ const currentImage = ref('')
 const isOwner = computed(() => {
   return userStore.userInfo?.id && resource.value?.ownerId === userStore.userInfo.id
 })
+
+// 资源日历
+const calendarDialogVisible = ref(false)
+const calendarDates = ref<any[]>([])
+const calendarMonth = ref(new Date())
 
 // 预约弹窗
 const bookingDialogVisible = ref(false)
@@ -261,7 +306,8 @@ function bookingStatusText(status: string) {
     approved: '已通过',
     rejected: '已拒绝',
     ongoing: '使用中',
-    returned: '已归还',
+    return_request: '归还待确认',
+    return_confirmed: '已归还',
     cancelled: '已取消'
   }
   return map[status] || status
@@ -276,7 +322,8 @@ function bookingStatusType(status: string) {
     approved: 'success',
     rejected: 'danger',
     ongoing: 'primary',
-    returned: 'info',
+    return_request: 'warning',
+    return_confirmed: 'info',
     cancelled: 'info'
   }
   return map[status] || 'info'
@@ -322,6 +369,51 @@ async function loadBookings() {
   } catch (error) {
     console.error('加载预约记录失败', error)
   }
+}
+
+/**
+ * 加载资源预约日历
+ */
+async function loadCalendar() {
+  if (!resource.value) return
+  const year = calendarMonth.value.getFullYear()
+  const month = calendarMonth.value.getMonth()
+  const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`
+  const lastDay = new Date(year, month + 1, 0).getDate()
+  const endDate = `${year}-${String(month + 1).padStart(2, '0')}-${lastDay}`
+
+  try {
+    const res: any = await getResourceCalendar(resource.value.id, startDate, endDate)
+    calendarDates.value = res.data || []
+  } catch (error) {
+    console.error('加载资源日历失败', error)
+  }
+}
+
+/**
+ * 打开日历弹窗
+ */
+function openCalendarDialog() {
+  calendarMonth.value = new Date()
+  loadCalendar()
+  calendarDialogVisible.value = true
+}
+
+/**
+ * 切换日历月份
+ */
+function handleCalendarMonthChange(date: Date) {
+  calendarMonth.value = date
+  loadCalendar()
+}
+
+/**
+ * 判断某日是否可预约
+ */
+function isDateAvailable(date: Date) {
+  const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+  const item = calendarDates.value.find((d: any) => d.date === dateStr)
+  return item ? item.available : true
 }
 
 /**
@@ -390,17 +482,38 @@ async function handleAudit(id: number, status: string) {
 }
 
 /**
- * 归还资源
+ * 借用方申请归还资源
  */
 async function handleReturn(id: number) {
   try {
-    await ElMessageBox.confirm('确定该资源已归还吗？', '提示', {
+    await ElMessageBox.confirm('确定要申请归还该资源吗？', '申请归还', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
     })
-    await returnResource(id)
-    ElMessage.success('归还成功')
+    await requestReturn(id)
+    ElMessage.success('已申请归还，等待所有者确认')
+    await loadBookings()
+    await loadResourceDetail()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error(error)
+    }
+  }
+}
+
+/**
+ * 所有者确认归还资源
+ */
+async function handleConfirmReturn(id: number) {
+  try {
+    await ElMessageBox.confirm('确定已收到归还的资源且状态正常吗？', '确认归还', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    await confirmReturn(id)
+    ElMessage.success('归还确认成功')
     await loadBookings()
     await loadResourceDetail()
   } catch (error) {
@@ -539,6 +652,46 @@ onMounted(() => {
     .booking-card {
       margin-top: 24px;
     }
+
+    .calendar-card {
+      margin-top: 24px;
+
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .calendar-hint {
+        margin: 0;
+        color: #909399;
+        font-size: 14px;
+      }
+    }
+  }
+}
+
+.calendar-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 12px;
+
+  .status-text {
+    font-size: 10px;
+    margin-top: 2px;
+  }
+
+  &.available {
+    color: #67c23a;
+    background-color: #f0f9eb;
+  }
+
+  &.unavailable {
+    color: #f56c6c;
+    background-color: #fef0f0;
   }
 }
 </style>

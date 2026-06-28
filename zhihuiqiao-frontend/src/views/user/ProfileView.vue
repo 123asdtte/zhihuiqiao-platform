@@ -75,19 +75,19 @@
           <h3 class="sidebar-title">学术足迹</h3>
           <div class="stat-grid">
             <div class="stat-item">
-              <div class="stat-value">{{ userInfo.roleType === 'student' ? '3' : '5' }}</div>
+              <div class="stat-value">{{ dashboard.joinedProjects }}</div>
               <div class="stat-label">参与项目</div>
             </div>
             <div class="stat-item">
-              <div class="stat-value">{{ userInfo.roleType === 'student' ? '12' : '8' }}</div>
+              <div class="stat-value">{{ dashboard.learningResources + dashboard.completedLearning }}</div>
               <div class="stat-label">学习资源</div>
             </div>
             <div class="stat-item">
-              <div class="stat-value">2</div>
+              <div class="stat-value">{{ dashboard.totalBookings }}</div>
               <div class="stat-label">资源借用</div>
             </div>
             <div class="stat-item">
-              <div class="stat-value">98%</div>
+              <div class="stat-value">{{ profileCompletion }}%</div>
               <div class="stat-label">资料完整度</div>
             </div>
           </div>
@@ -110,42 +110,123 @@
             </div>
           </div>
 
+          <!-- 我的主页：聚合看板 -->
+          <div v-show="activeTab === 'dashboard'" class="tab-panel" v-loading="dashboardLoading">
+            <div class="panel-header">
+              <h3 class="panel-title">我的主页</h3>
+              <p class="panel-desc">聚合您的科研项目、资源预约、学习进度与消息动态</p>
+            </div>
+
+            <!-- 数据概览卡片 -->
+            <div class="dashboard-stats">
+              <div class="dashboard-stat-card" @click="router.push('/app/research/my-projects')">
+                <div class="stat-icon published"><el-icon :size="22"><Opportunity /></el-icon></div>
+                <div class="stat-info">
+                  <div class="stat-value">{{ dashboard.publishedProjects }}</div>
+                  <div class="stat-label">我发布的项目</div>
+                </div>
+              </div>
+              <div class="dashboard-stat-card" @click="router.push('/app/research/my-projects')">
+                <div class="stat-icon joined"><el-icon :size="22"><User /></el-icon></div>
+                <div class="stat-info">
+                  <div class="stat-value">{{ dashboard.joinedProjects }}</div>
+                  <div class="stat-label">我加入的项目</div>
+                </div>
+              </div>
+              <div class="dashboard-stat-card" @click="router.push('/app/research/applications')">
+                <div class="stat-icon application"><el-icon :size="22"><CollectionTag /></el-icon></div>
+                <div class="stat-info">
+                  <div class="stat-value">{{ dashboard.pendingApplications }}</div>
+                  <div class="stat-label">待处理申请</div>
+                </div>
+              </div>
+              <div class="dashboard-stat-card" @click="router.push('/app/resource/bookings')">
+                <div class="stat-icon booking"><el-icon :size="22"><Calendar /></el-icon></div>
+                <div class="stat-info">
+                  <div class="stat-value">{{ dashboard.pendingBookings }}</div>
+                  <div class="stat-label">待处理预约</div>
+                </div>
+              </div>
+              <div class="dashboard-stat-card" @click="router.push('/app/learning/center')">
+                <div class="stat-icon learning"><el-icon :size="22"><Star /></el-icon></div>
+                <div class="stat-info">
+                  <div class="stat-value">{{ dashboard.learningResources }}</div>
+                  <div class="stat-label">学习中资源</div>
+                </div>
+              </div>
+              <div class="dashboard-stat-card" @click="router.push('/app/notifications')">
+                <div class="stat-icon notification"><el-icon :size="22"><Bell /></el-icon></div>
+                <div class="stat-info">
+                  <div class="stat-value">{{ dashboard.unreadNotifications }}</div>
+                  <div class="stat-label">未读消息</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 信用分与资料完整度 -->
+            <div class="dashboard-extra">
+              <div class="extra-card credit-card">
+                <div class="extra-title">信用分</div>
+                <div class="credit-score" :class="creditScoreClass">{{ dashboard.creditScore }}</div>
+                <div class="extra-desc">按时归还资源、遵守约定可提升信用分</div>
+              </div>
+              <div class="extra-card completion-card">
+                <div class="extra-title">资料完整度</div>
+                <el-progress :percentage="profileCompletion" :stroke-width="12" :status="profileCompletion >= 80 ? 'success' : ''" />
+                <div class="extra-desc">完善资料可获得更精准的推荐</div>
+              </div>
+            </div>
+
+            <!-- 快捷入口 -->
+            <div class="dashboard-links">
+              <div class="links-title">快捷入口</div>
+              <div class="links-list">
+                <el-button plain @click="router.push('/app/research/my-projects')">我的项目</el-button>
+                <el-button plain @click="router.push('/app/research/applications')">我的申请</el-button>
+                <el-button plain @click="router.push('/app/resource/bookings')">我的预约</el-button>
+                <el-button plain @click="router.push('/app/learning/center')">学习中心</el-button>
+                <el-button plain @click="router.push('/app/notifications')">消息通知</el-button>
+                <el-button plain @click="activeTab = 'researchProfile'">科研画像</el-button>
+              </div>
+            </div>
+          </div>
+
           <!-- 基础资料 -->
           <div v-show="activeTab === 'basic'" class="tab-panel" v-loading="loading">
             <div class="panel-header">
               <h3 class="panel-title">编辑基础资料</h3>
               <p class="panel-desc">完善个人信息，让合作方更了解您的学术背景</p>
             </div>
-            <el-form :model="profileForm" label-width="120px" class="profile-form">
-              <el-form-item label="头像">
+            <el-form ref="profileFormRef" :model="profileForm" :rules="profileRules" label-width="120px" class="profile-form">
+              <el-form-item label="头像" prop="avatar">
                 <ImageUpload v-model="profileForm.avatar" class="avatar-upload" />
                 <div class="form-tip">支持 jpg、png、gif、webp 格式，建议上传正方形图片</div>
               </el-form-item>
-              <el-form-item label="真实姓名">
-                <el-input v-model="profileForm.realName" placeholder="请输入真实姓名" />
+              <el-form-item label="真实姓名" prop="realName">
+                <el-input v-model="profileForm.realName" placeholder="请输入真实姓名" maxlength="50" show-word-limit />
               </el-form-item>
-              <el-form-item label="邮箱">
-                <el-input v-model="profileForm.email" placeholder="请输入邮箱地址" />
+              <el-form-item label="邮箱" prop="email">
+                <el-input v-model="profileForm.email" placeholder="请输入邮箱地址" maxlength="100" />
               </el-form-item>
-              <el-form-item label="手机号">
-                <el-input v-model="profileForm.phone" placeholder="请输入手机号" />
+              <el-form-item label="手机号" prop="phone">
+                <el-input v-model="profileForm.phone" placeholder="请输入手机号" maxlength="20" />
               </el-form-item>
-              <el-form-item label="所属部门/学院">
-                <el-input v-model="profileForm.department" placeholder="请输入所属部门或学院" />
+              <el-form-item label="所属部门/学院" prop="department">
+                <el-input v-model="profileForm.department" placeholder="请输入所属部门或学院" maxlength="100" />
               </el-form-item>
-              <el-form-item label="专业">
-                <el-input v-model="profileForm.major" placeholder="请输入专业方向" />
+              <el-form-item label="专业" prop="major">
+                <el-input v-model="profileForm.major" placeholder="请输入专业方向" maxlength="100" />
               </el-form-item>
 
               <!-- 角色专属字段 -->
-              <el-form-item v-if="userInfo.roleType === 'student'" label="年级">
-                <el-input v-model="profileForm.grade" placeholder="如：2024级" />
+              <el-form-item v-if="userInfo.roleType === 'student'" label="年级" prop="grade">
+                <el-input v-model="profileForm.grade" placeholder="如：2024级" maxlength="50" />
               </el-form-item>
-              <el-form-item v-if="userInfo.roleType === 'teacher'" label="职称">
-                <el-input v-model="profileForm.title" placeholder="如：副教授" />
+              <el-form-item v-if="userInfo.roleType === 'teacher'" label="职称" prop="title">
+                <el-input v-model="profileForm.title" placeholder="如：副教授" maxlength="50" />
               </el-form-item>
-              <el-form-item v-if="userInfo.roleType === 'enterprise'" label="企业名称">
-                <el-input v-model="profileForm.companyName" placeholder="请输入企业名称" />
+              <el-form-item v-if="userInfo.roleType === 'enterprise'" label="企业名称" prop="companyName">
+                <el-input v-model="profileForm.companyName" placeholder="请输入企业名称" maxlength="100" />
               </el-form-item>
 
               <el-form-item>
@@ -153,6 +234,106 @@
                   <el-icon><Check /></el-icon>
                   保存修改
                 </el-button>
+              </el-form-item>
+            </el-form>
+          </div>
+
+          <!-- 科研画像 -->
+          <div v-show="activeTab === 'researchProfile'" class="tab-panel" v-loading="loading">
+            <div class="panel-header">
+              <h3 class="panel-title">编辑科研画像</h3>
+              <p class="panel-desc">完善科研背景、技能与兴趣，让 AI 推荐更精准地匹配科研项目</p>
+            </div>
+            <el-form
+              ref="researchFormRef"
+              :model="researchForm"
+              :rules="researchRules"
+              label-position="top"
+              class="profile-form"
+            >
+              <el-form-item label="研究方向" prop="researchDirections">
+                <el-input
+                  v-model="researchForm.researchDirections"
+                  type="textarea"
+                  :rows="3"
+                  placeholder="请填写您的研究方向，如：深度学习、自然语言处理、计算机视觉等"
+                  maxlength="500"
+                  show-word-limit
+                />
+              </el-form-item>
+
+              <el-form-item label="专业技能" prop="skills">
+                <el-input
+                  v-model="researchForm.skills"
+                  type="textarea"
+                  :rows="3"
+                  placeholder="请填写您掌握的专业技能，如：Python、PyTorch、Java、数据分析等"
+                  maxlength="500"
+                  show-word-limit
+                />
+              </el-form-item>
+
+              <el-form-item label="科研成果" prop="publications">
+                <el-input
+                  v-model="researchForm.publications"
+                  type="textarea"
+                  :rows="3"
+                  placeholder="请填写您的论文、专利、获奖等科研成果"
+                  maxlength="500"
+                  show-word-limit
+                />
+              </el-form-item>
+
+              <el-form-item label="项目经历" prop="projectExperience">
+                <el-input
+                  v-model="researchForm.projectExperience"
+                  type="textarea"
+                  :rows="3"
+                  placeholder="请填写您参与过的科研项目或工程实践经历"
+                  maxlength="500"
+                  show-word-limit
+                />
+              </el-form-item>
+
+              <el-form-item label="研究兴趣" prop="researchInterests">
+                <el-input
+                  v-model="researchForm.researchInterests"
+                  type="textarea"
+                  :rows="3"
+                  placeholder="请填写您感兴趣的研究课题或合作方向"
+                  maxlength="500"
+                  show-word-limit
+                />
+              </el-form-item>
+
+              <el-row :gutter="24">
+                <el-col :span="12">
+                  <el-form-item label="可投入时间" prop="availability">
+                    <el-select v-model="researchForm.availability" placeholder="请选择可投入时间" style="width: 100%">
+                      <el-option label="每周 1-5 小时" value="每周 1-5 小时" />
+                      <el-option label="每周 5-10 小时" value="每周 5-10 小时" />
+                      <el-option label="每周 10-20 小时" value="每周 10-20 小时" />
+                      <el-option label="每周 20 小时以上" value="每周 20 小时以上" />
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="合作意向" prop="cooperationIntention">
+                    <el-select v-model="researchForm.cooperationIntention" placeholder="请选择合作意向" style="width: 100%">
+                      <el-option label="仅校内合作" value="仅校内合作" />
+                      <el-option label="校企联合" value="校企联合" />
+                      <el-option label="开放合作" value="开放合作" />
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+
+              <el-form-item>
+                <el-button type="primary" size="large" class="save-btn" :loading="researchSubmitting" @click="handleSaveResearchProfile">
+                  <el-icon><Check /></el-icon>
+                  保存画像
+                </el-button>
+                <el-button size="large" @click="handleResetResearchProfile">重置</el-button>
               </el-form-item>
             </el-form>
           </div>
@@ -213,17 +394,44 @@ import {
   Message,
   Iphone,
   User,
-  Setting
+  Setting,
+  Collection,
+  HomeFilled,
+  Opportunity,
+  Calendar,
+  CollectionTag,
+  Bell,
+  Star
 } from '@element-plus/icons-vue'
 import { getCurrentUser, updateCurrentUser } from '@/api/auth'
+import { getResearcherProfile, saveResearcherProfile, getMyProjects, getJoinedProjects, getMyApplications } from '@/api/research'
+import { getMyBookings } from '@/api/resource'
+import { getMyLearningRecords } from '@/api/learning'
+import { getUnreadCount } from '@/api/notification'
 import { useUserStore } from '@/stores/user'
 
 // ==================== Store 与状态 ====================
 const userStore = useUserStore()
+const router = useRouter()
 const loading = ref(false)
-const activeTab = ref('basic')
+const activeTab = ref('dashboard')
 
 const userInfo = reactive<any>({})
+
+// 我的主页聚合看板数据
+const dashboardLoading = ref(false)
+const dashboard = reactive({
+  publishedProjects: 0,
+  joinedProjects: 0,
+  pendingApplications: 0,
+  totalApplications: 0,
+  pendingBookings: 0,
+  totalBookings: 0,
+  learningResources: 0,
+  completedLearning: 0,
+  unreadNotifications: 0,
+  creditScore: 100
+})
 
 const profileForm = reactive({
   avatar: '',
@@ -237,13 +445,74 @@ const profileForm = reactive({
   companyName: ''
 })
 
+const profileFormRef = ref<any>(null)
+
+// 基础资料表单校验规则
+const profileRules = {
+  realName: [{ required: true, message: '请输入真实姓名', trigger: 'blur' }],
+  email: [
+    { required: true, message: '请输入邮箱地址', trigger: 'blur' },
+    { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' }
+  ],
+  phone: [
+    { required: true, message: '请输入手机号', trigger: 'blur' },
+    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号格式', trigger: 'blur' }
+  ],
+  department: [{ required: true, message: '请输入所属部门或学院', trigger: 'blur' }],
+  major: [{ required: true, message: '请输入专业方向', trigger: 'blur' }]
+}
+
+// 科研画像表单
+const researchFormRef = ref<any>(null)
+const researchSubmitting = ref(false)
+const researchForm = reactive({
+  userId: 0,
+  researchDirections: '',
+  skills: '',
+  publications: '',
+  projectExperience: '',
+  researchInterests: '',
+  availability: '',
+  cooperationIntention: ''
+})
+
+const researchRules = {
+  researchDirections: [{ required: true, message: '请填写研究方向', trigger: 'blur' }],
+  skills: [{ required: true, message: '请填写专业技能', trigger: 'blur' }]
+}
+
 const tabs = [
+  { key: 'dashboard', label: '我的主页', icon: 'HomeFilled' },
   { key: 'basic', label: '基础资料', icon: 'User' },
+  { key: 'researchProfile', label: '科研画像', icon: 'Collection' },
   { key: 'security', label: '安全设置', icon: 'Setting' }
 ]
 
 const lastUpdateText = computed(() => {
   return new Date().toLocaleDateString('zh-CN')
+})
+
+/**
+ * 资料完整度：基于基础资料关键字段计算百分比
+ */
+const profileCompletion = computed(() => {
+  const fields = ['avatar', 'realName', 'email', 'phone', 'department', 'major']
+  const filled = fields.filter((field) => {
+    const value = profileForm[field as keyof typeof profileForm]
+    return value && String(value).trim() !== ''
+  }).length
+  return Math.round((filled / fields.length) * 100)
+})
+
+/**
+ * 信用分样式：根据分数区间返回不同颜色类
+ */
+const creditScoreClass = computed(() => {
+  const score = dashboard.creditScore
+  if (score >= 90) return 'excellent'
+  if (score >= 70) return 'good'
+  if (score >= 60) return 'normal'
+  return 'poor'
 })
 
 // ==================== 辅助函数 ====================
@@ -287,6 +556,11 @@ async function loadUserInfo() {
 
 // ==================== 事件处理 ====================
 async function handleSave() {
+  if (!profileFormRef.value) return
+
+  const valid = await profileFormRef.value.validate().catch(() => false)
+  if (!valid) return
+
   const submitData: Record<string, any> = {
     avatar: profileForm.avatar,
     realName: profileForm.realName,
@@ -323,8 +597,141 @@ function handleChangePassword() {
   ElMessage.info('修改密码功能正在开发中，敬请期待')
 }
 
+// ==================== 科研画像加载与保存 ====================
+async function loadResearchProfile() {
+  const userId = userStore.userInfo?.id
+  if (!userId) return
+
+  try {
+    const res: any = await getResearcherProfile(userId)
+    if (res.data) {
+      Object.assign(researchForm, res.data)
+    } else {
+      researchForm.userId = userId
+    }
+  } catch (error) {
+    ElMessage.error('加载科研画像失败')
+    console.error(error)
+  }
+}
+
+async function handleSaveResearchProfile() {
+  if (!researchFormRef.value) return
+
+  await researchFormRef.value.validate(async (valid: boolean) => {
+    if (!valid) return
+
+    researchSubmitting.value = true
+    try {
+      const submitData = {
+        ...researchForm,
+        userId: userStore.userInfo?.id || 0
+      }
+      const res: any = await saveResearcherProfile(submitData)
+      if (res.code === 200) {
+        ElMessage.success('科研画像保存成功')
+      } else {
+        ElMessage.error(res.message || '保存失败')
+      }
+    } catch (error) {
+      ElMessage.error('保存失败，请稍后重试')
+      console.error(error)
+    } finally {
+      researchSubmitting.value = false
+    }
+  })
+}
+
+function handleResetResearchProfile() {
+  loadResearchProfile()
+}
+
+/**
+ * 加载聚合看板数据
+ * 并发请求各模块接口，失败时回退为 0，避免单个接口异常影响整个看板
+ */
+async function loadDashboard() {
+  if (!userStore.userInfo?.id) return
+  dashboardLoading.value = true
+
+  try {
+    const [
+      publishedRes,
+      joinedRes,
+      applicationsRes,
+      bookingsRes,
+      learningRes,
+      unreadRes
+    ] = await Promise.allSettled([
+      getMyProjects({ pageNum: 1, pageSize: 1 }),
+      getJoinedProjects({ pageNum: 1, pageSize: 1 }),
+      getMyApplications(),
+      getMyBookings(userStore.userInfo.id),
+      getMyLearningRecords(),
+      getUnreadCount()
+    ])
+
+    dashboard.publishedProjects = extractTotal(publishedRes)
+    dashboard.joinedProjects = extractTotal(joinedRes)
+
+    const applications = extractList(applicationsRes)
+    dashboard.totalApplications = applications.length
+    dashboard.pendingApplications = applications.filter((item: any) => item.status === 'pending' || item.status === 'interview').length
+
+    const bookings = extractList(bookingsRes)
+    dashboard.totalBookings = bookings.length
+    dashboard.pendingBookings = bookings.filter((item: any) => item.status === 'pending').length
+
+    const learningRecords = extractList(learningRes)
+    dashboard.learningResources = learningRecords.filter((item: any) => item.status === 'learning').length
+    dashboard.completedLearning = learningRecords.filter((item: any) => item.status === 'completed').length
+
+    dashboard.unreadNotifications = extractValue(unreadRes, 0)
+
+    // 信用分优先使用后端返回的 creditScore，否则默认 100
+    dashboard.creditScore = userStore.userInfo?.creditScore ?? userInfo.creditScore ?? 100
+  } catch (error) {
+    console.error('加载聚合看板失败', error)
+  } finally {
+    dashboardLoading.value = false
+  }
+}
+
+/**
+ * 从 Promise.allSettled 结果中提取分页 total
+ */
+function extractTotal(result: PromiseSettledResult<any>) {
+  if (result.status === 'fulfilled' && result.value?.code === 200) {
+    return result.value.data?.total ?? 0
+  }
+  return 0
+}
+
+/**
+ * 从 Promise.allSettled 结果中提取列表数据
+ */
+function extractList(result: PromiseSettledResult<any>) {
+  if (result.status === 'fulfilled' && result.value?.code === 200) {
+    return Array.isArray(result.value.data) ? result.value.data : (result.value.data?.records || [])
+  }
+  return []
+}
+
+/**
+ * 从 Promise.allSettled 结果中提取单个数值
+ */
+function extractValue(result: PromiseSettledResult<any>, defaultValue: any) {
+  if (result.status === 'fulfilled' && result.value?.code === 200) {
+    return result.value.data ?? defaultValue
+  }
+  return defaultValue
+}
+
 onMounted(() => {
-  loadUserInfo()
+  loadUserInfo().then(() => {
+    loadResearchProfile()
+    loadDashboard()
+  })
 })
 </script>
 
@@ -332,7 +739,14 @@ onMounted(() => {
 export default {
   components: {
     User,
-    Setting
+    Setting,
+    Collection,
+    HomeFilled,
+    Opportunity,
+    Calendar,
+    CollectionTag,
+    Bell,
+    Star
   }
 }
 </script>
@@ -765,7 +1179,141 @@ export default {
   }
 
   .card-tabs {
-    overflow-x: auto;
+  overflow-x: auto;
+}
+}
+
+// ==================== 我的主页聚合看板 ====================
+.dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--zh-space-4);
+  margin-bottom: var(--zh-space-6);
+}
+
+.dashboard-stat-card {
+  display: flex;
+  align-items: center;
+  gap: var(--zh-space-4);
+  padding: var(--zh-space-5);
+  background: var(--zh-bg-warm);
+  border: 1px solid var(--zh-border-light);
+  border-radius: var(--zh-radius);
+  cursor: pointer;
+  transition: all var(--zh-transition-fast);
+
+  &:hover {
+    border-color: var(--zh-border);
+    box-shadow: var(--zh-shadow-sm);
+    transform: translateY(-2px);
+  }
+
+  .stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--zh-radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    flex-shrink: 0;
+
+    &.published { background: var(--zh-primary); }
+    &.joined { background: var(--zh-accent); }
+    &.application { background: var(--zh-success); }
+    &.booking { background: var(--zh-info); }
+    &.learning { background: var(--zh-warning); }
+    &.notification { background: var(--zh-danger); }
+  }
+
+  .stat-info {
+    .stat-value {
+      font-family: var(--zh-font-display);
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--zh-text-primary);
+      line-height: 1.2;
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: var(--zh-text-secondary);
+      margin-top: 2px;
+    }
+  }
+}
+
+.dashboard-extra {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--zh-space-4);
+  margin-bottom: var(--zh-space-6);
+}
+
+.extra-card {
+  padding: var(--zh-space-5);
+  background: var(--zh-bg-warm);
+  border: 1px solid var(--zh-border-light);
+  border-radius: var(--zh-radius);
+
+  .extra-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--zh-text-secondary);
+    margin-bottom: var(--zh-space-3);
+  }
+
+  .credit-score {
+    font-family: var(--zh-font-display);
+    font-size: 36px;
+    font-weight: 700;
+    margin-bottom: var(--zh-space-2);
+
+    &.excellent { color: var(--zh-success); }
+    &.good { color: var(--zh-primary); }
+    &.normal { color: var(--zh-warning); }
+    &.poor { color: var(--zh-danger); }
+  }
+
+  .extra-desc {
+    font-size: 13px;
+    color: var(--zh-text-tertiary);
+  }
+}
+
+.dashboard-links {
+  padding: var(--zh-space-5);
+  background: var(--zh-bg-warm);
+  border: 1px solid var(--zh-border-light);
+  border-radius: var(--zh-radius);
+
+  .links-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--zh-text-secondary);
+    margin-bottom: var(--zh-space-3);
+  }
+
+  .links-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--zh-space-3);
+  }
+}
+
+@media (max-width: 992px) {
+  .dashboard-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dashboard-extra {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 576px) {
+  .dashboard-stats {
+    grid-template-columns: 1fr;
   }
 }
 </style>

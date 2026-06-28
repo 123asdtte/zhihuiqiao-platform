@@ -7,6 +7,7 @@ const routes: RouteRecordRaw[] = [
     path: '/',
     component: () => import('@/layout/AuthLayout.vue'),
     meta: { requiresAuth: false },
+    redirect: '/login',
     children: [
       {
         path: 'login',
@@ -83,12 +84,6 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '发布企业需求', roles: ['enterprise', 'admin'] }
       },
       {
-        path: 'research/profile',
-        name: 'ResearcherProfile',
-        component: () => import('@/views/research/ResearcherProfile.vue'),
-        meta: { title: '科研画像', roles: ['student', 'teacher'] }
-      },
-      {
         path: 'resource/list',
         name: 'ResourceList',
         component: () => import('@/views/resource/ResourceList.vue'),
@@ -141,6 +136,12 @@ const routes: RouteRecordRaw[] = [
         name: 'UserProfile',
         component: () => import('@/views/user/ProfileView.vue'),
         meta: { title: '个人中心' }
+      },
+      {
+        path: 'search',
+        name: 'GlobalSearch',
+        component: () => import('@/views/search/GlobalSearch.vue'),
+        meta: { title: '全局搜索' }
       },
       {
         path: 'notifications',

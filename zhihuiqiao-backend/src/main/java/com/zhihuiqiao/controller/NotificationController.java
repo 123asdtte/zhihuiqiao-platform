@@ -37,9 +37,10 @@ public class NotificationController {
     public Result<IPage<Notification>> listNotifications(
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize,
-            @RequestParam(required = false) Boolean onlyUnread) {
+            @RequestParam(required = false) Boolean onlyUnread,
+            @RequestParam(required = false) String type) {
         Page<Notification> page = new Page<>(pageNum, pageSize);
-        return Result.success(notificationService.listUserNotifications(page, getCurrentUserId(), onlyUnread));
+        return Result.success(notificationService.listUserNotifications(page, getCurrentUserId(), onlyUnread, type));
     }
 
     @Operation(summary = "获取当前用户未读通知数量")

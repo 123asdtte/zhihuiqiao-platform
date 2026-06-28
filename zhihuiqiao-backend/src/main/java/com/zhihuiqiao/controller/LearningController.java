@@ -18,7 +18,9 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 教学辅助模块 Controller
@@ -132,29 +134,57 @@ public class LearningController {
 
     /**
      * 查询学习资源详情
+     * 返回资源信息及当前用户的学习记录（进度、收藏、笔记、评价）
      */
     @Operation(summary = "查询学习资源详情")
     @GetMapping("/resource/{id}")
-    public Result<LearningResource> getResourceById(@PathVariable Long id) {
+    public Result<Map<String, Object>> getResourceById(@PathVariable Long id) {
         LearningResource resource = learningResourceService.getById(id);
-        if (resource != null) {
-            // 未审核通过的资源只有管理员或发布者本人可以查看详情
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            Long currentUserId = authentication != null && authentication.getCredentials() instanceof Long uid ? uid : null;
-            String currentRole = authentication != null && authentication.isAuthenticated()
-                    ? authentication.getAuthorities().stream()
-                    .findFirst()
-                    .map(auth -> auth.getAuthority().replace("ROLE_", "").toLowerCase())
-                    .orElse("")
-                    : "";
-            if (resource.getStatus() != null && resource.getStatus() != 1
-                    && !"admin".equals(currentRole) && !resource.getPublisherId().equals(currentUserId)) {
-                return Result.error("该资源暂未通过审核");
-            }
-            resource.setViews(resource.getViews() + 1);
-            learningResourceService.updateById(resource);
+        if (resource == null) {
+            return Result.success(null);
         }
-        return Result.success(resource);
+
+        // 未审核通过的资源只有管理员或发布者本人可以查看详情
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Long currentUserId = authentication != null && authentication.getCredentials() instanceof Long uid ? uid : null;
+        String currentRole = authentication != null && authentication.isAuthenticated()
+                ? authentication.getAuthorities().stream()
+                .findFirst()
+                .map(auth -> auth.getAuthority().replace("ROLE_", "").toLowerCase())
+                .orElse("")
+                : "";
+        if (resource.getStatus() != null && resource.getStatus() != 1
+                && !"admin".equals(currentRole) && !resource.getPublisherId().equals(currentUserId)) {
+            return Result.error("该资源暂未通过审核");
+        }
+
+        // 浏览量 +1
+        resource.setViews(resource.getViews() + 1);
+        learningResourceService.updateById(resource);
+
+        // 查询当前用户学习记录
+        Map<String, Object> result = new HashMap<>();
+        result.put("resource", resource);
+        if (currentUserId != null) {
+            LambdaQueryWrapper<LearningRecord> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(LearningRecord::getUserId, currentUserId)
+                    .eq(LearningRecord::getResourceId, id)
+                    .eq(LearningRecord::getDeleted, 0);
+            LearningRecord record = learningRecordService.getOne(wrapper);
+            if (record != null) {
+                Map<String, Object> recordMap = new HashMap<>();
+                recordMap.put("id", record.getId());
+                recordMap.put("progress", record.getProgress());
+                recordMap.put("status", record.getStatus());
+                recordMap.put("lastPosition", record.getLastPosition());
+                recordMap.put("note", record.getNote());
+                recordMap.put("rating", record.getRating());
+                recordMap.put("comment", record.getComment());
+                recordMap.put("isFavorited", "favorite".equals(record.getStatus()));
+                result.put("myRecord", recordMap);
+            }
+        }
+        return Result.success(result);
     }
 
     /**
@@ -307,5 +337,62 @@ public class LearningController {
             return Result.error("无权删除该学习记录");
         }
         return Result.success(learningRecordService.removeById(id));
+    }
+
+    /**
+     * 更新学习笔记
+     */
+    @Operation(summary = "更新学习笔记")
+    @PutMapping("/record/{id}/note")
+    public Result<Boolean> updateNote(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        LearningRecord record = learningRecordService.getById(id);
+        if (record == null) {
+            return Result.error("学习记录不存在");
+        }
+        Long currentUserId = getCurrentUserId();
+        String currentRole = getCurrentRoleType();
+        if (!"admin".equals(currentRole) && !record.getUserId().equals(currentUserId)) {
+            return Result.error("无权修改该学习记录");
+        }
+
+        String note = body.get("note");
+        LearningRecord update = new LearningRecord();
+        update.setId(id);
+        update.setNote(note);
+        update.setUpdateTime(LocalDateTime.now());
+        return Result.success(learningRecordService.updateById(update));
+    }
+
+    /**
+     * 提交或更新学习评价
+     */
+    @Operation(summary = "提交或更新学习评价")
+    @PutMapping("/record/{id}/review")
+    public Result<Boolean> updateReview(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        LearningRecord record = learningRecordService.getById(id);
+        if (record == null) {
+            return Result.error("学习记录不存在");
+        }
+        Long currentUserId = getCurrentUserId();
+        String currentRole = getCurrentRoleType();
+        if (!"admin".equals(currentRole) && !record.getUserId().equals(currentUserId)) {
+            return Result.error("无权修改该学习记录");
+        }
+
+        Integer rating = null;
+        if (body.get("rating") != null) {
+            rating = Integer.parseInt(body.get("rating").toString());
+            if (rating < 1 || rating > 5) {
+                return Result.error("评分范围为 1-5");
+            }
+        }
+        String comment = body.get("comment") != null ? body.get("comment").toString() : null;
+
+        LearningRecord update = new LearningRecord();
+        update.setId(id);
+        update.setRating(rating);
+        update.setComment(comment);
+        update.setUpdateTime(LocalDateTime.now());
+        return Result.success(learningRecordService.updateById(update));
     }
 }

@@ -56,10 +56,27 @@ public class ResourceBooking {
     private String status;
 
     /**
-     * 实际归还时间
+     * 借用方申请归还时间
+     */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime returnRequestTime;
+
+    /**
+     * 所有者确认归还时间
+     */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime returnConfirmTime;
+
+    /**
+     * 实际归还时间（与确认归还时间一致）
      */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime returnTime;
+
+    /**
+     * 超期状态：none/normal/overdue/resolved
+     */
+    private String overdueStatus;
 
     /**
      * 回复消息

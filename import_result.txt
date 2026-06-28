@@ -1,7 +1,0 @@
-﻿node : Upload failed
-At line:15 char:3493
-+ ... h]::PathSeparator + $env:PATH; node upload_and_import.js 2>&1 | Out-F ...
-+                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: (Upload failed:String) [], RemoteException
-    + FullyQualifiedErrorId : NativeCommandError
- 

@@ -82,18 +82,25 @@ public class AiRecommendController {
         if (userId == null) {
             return Result.error("请先登录");
         }
+        return Result.success(doRecommendProjects(userId));
+    }
 
-        // 1. 查询用户科研画像
+    /**
+     * 执行 DeepSeek 科研项目推荐核心逻辑
+     */
+    private List<Map<String, Object>> doRecommendProjects(Long userId) {
+        // 1. 查询用户基础信息和科研画像
+        SysUser user = sysUserService.getById(userId);
         ResearcherProfile profile = researcherProfileService.getByUserId(userId);
 
         // 2. 查询所有招募中的科研项目
         List<ResearchProject> projects = researchProjectService.listRecruitingProjects();
         if (projects.isEmpty()) {
-            return Result.success(new ArrayList<>());
+            return new ArrayList<>();
         }
 
         // 3. 构建 AI 提示词
-        String userPrompt = buildPrompt(profile, projects);
+        String userPrompt = buildPrompt(user, profile, projects);
         String systemPrompt = "你是一名科研匹配专家。请根据用户画像和项目列表，选出最匹配的 1-5 个项目，并以 JSON 数组格式返回，每个元素包含 projectId（项目ID，Long 类型）和 reason（推荐理由，简短 20 字以内）。只返回 JSON 数组，不要返回其他说明文字。";
 
         try {
@@ -101,7 +108,7 @@ public class AiRecommendController {
             log.info("DeepSeek 推荐响应: {}", aiResponse);
 
             if (!StringUtils.hasText(aiResponse)) {
-                return Result.success(buildFallbackResult(projects, profile));
+                return buildFallbackResult(projects, user, profile);
             }
 
             // 4. 解析 AI 返回的 JSON
@@ -134,24 +141,35 @@ public class AiRecommendController {
 
             // 如果 AI 没有返回任何有效推荐，返回兜底结果
             if (result.isEmpty()) {
-                return Result.success(buildFallbackResult(projects, profile));
+                return buildFallbackResult(projects, user, profile);
             }
 
-            return Result.success(result);
+            return result;
         } catch (JsonProcessingException e) {
             log.error("解析 DeepSeek 推荐结果失败", e);
-            return Result.success(buildFallbackResult(projects, profile));
+            return buildFallbackResult(projects, user, profile);
         } catch (Exception e) {
             log.error("科研项目推荐失败", e);
-            return Result.success(buildFallbackResult(projects, profile));
+            return buildFallbackResult(projects, user, profile);
         }
     }
 
     /**
      * 构建推荐提示词
      */
-    private String buildPrompt(ResearcherProfile profile, List<ResearchProject> projects) {
+    private String buildPrompt(SysUser user, ResearcherProfile profile, List<ResearchProject> projects) {
         StringBuilder sb = new StringBuilder();
+
+        // 用户基础信息
+        sb.append("用户基础信息：");
+        if (user != null) {
+            sb.append("角色=").append(defaultIfEmpty(user.getRoleType(), "未填写")).append(";");
+            sb.append("学院/部门=").append(defaultIfEmpty(user.getDepartment(), "未填写")).append(";");
+            sb.append("专业=").append(defaultIfEmpty(user.getMajor(), "未填写")).append(";");
+            sb.append("年级=").append(defaultIfEmpty(user.getGrade(), "未填写")).append(";");
+            sb.append("职称=").append(defaultIfEmpty(user.getTitle(), "未填写")).append(";");
+        }
+        sb.append("\n");
 
         if (profile != null) {
             sb.append("用户科研画像：");
@@ -181,12 +199,12 @@ public class AiRecommendController {
     }
 
     /**
-     * 兜底推荐：按关键词简单匹配
+     * 兜底推荐：按关键词简单匹配，结合用户基础信息和科研画像
      */
-    private List<Map<String, Object>> buildFallbackResult(List<ResearchProject> projects, ResearcherProfile profile) {
+    private List<Map<String, Object>> buildFallbackResult(List<ResearchProject> projects, SysUser user, ResearcherProfile profile) {
         List<ResearchProject> sorted = new ArrayList<>(projects);
-        if (profile != null) {
-            String keywords = combineProfileKeywords(profile).toLowerCase();
+        if (user != null || profile != null) {
+            String keywords = combineUserKeywords(user, profile).toLowerCase();
             Map<Long, Integer> scoreMap = new HashMap<>();
             for (ResearchProject project : sorted) {
                 int score = 0;
@@ -207,7 +225,7 @@ public class AiRecommendController {
             ResearchProject project = sorted.get(i);
             Map<String, Object> item = new HashMap<>();
             item.put("project", project);
-            item.put("reason", "基于你的科研画像为你推荐");
+            item.put("reason", "基于你的个人信息和科研画像为你推荐");
             item.put("score", 0);
             result.add(item);
         }
@@ -215,15 +233,23 @@ public class AiRecommendController {
     }
 
     /**
-     * 组合用户画像关键词
+     * 组合用户基础信息和科研画像关键词
      */
-    private String combineProfileKeywords(ResearcherProfile profile) {
+    private String combineUserKeywords(SysUser user, ResearcherProfile profile) {
         List<String> parts = new ArrayList<>();
-        parts.add(defaultIfEmpty(profile.getResearchDirections(), ""));
-        parts.add(defaultIfEmpty(profile.getSkills(), ""));
-        parts.add(defaultIfEmpty(profile.getResearchInterests(), ""));
-        parts.add(defaultIfEmpty(profile.getProjectExperience(), ""));
-        parts.add(defaultIfEmpty(profile.getCooperationIntention(), ""));
+        if (user != null) {
+            parts.add(defaultIfEmpty(user.getDepartment(), ""));
+            parts.add(defaultIfEmpty(user.getMajor(), ""));
+            parts.add(defaultIfEmpty(user.getGrade(), ""));
+            parts.add(defaultIfEmpty(user.getTitle(), ""));
+        }
+        if (profile != null) {
+            parts.add(defaultIfEmpty(profile.getResearchDirections(), ""));
+            parts.add(defaultIfEmpty(profile.getSkills(), ""));
+            parts.add(defaultIfEmpty(profile.getResearchInterests(), ""));
+            parts.add(defaultIfEmpty(profile.getProjectExperience(), ""));
+            parts.add(defaultIfEmpty(profile.getCooperationIntention(), ""));
+        }
         return parts.stream().filter(StringUtils::hasText).collect(Collectors.joining(","));
     }
 
@@ -293,27 +319,21 @@ public class AiRecommendController {
     }
 
     /**
-     * 本地生成项目推荐文本
+     * 生成项目推荐文本，优先调用 DeepSeek 智能推荐
      */
     private Result<String> recommendByLocal(Long userId) {
-        ResearcherProfile profile = researcherProfileService.getByUserId(userId);
-        List<ResearchProject> projects = researchProjectService.listRecruitingProjects();
-        if (projects.isEmpty()) {
+        List<Map<String, Object>> recommendations = doRecommendProjects(userId);
+        if (recommendations.isEmpty()) {
             return Result.success("当前没有正在招募中的科研项目，你可以稍后再来问我，或者先去浏览企业需求和学习资源。");
         }
 
-        List<Map<String, Object>> fallback = buildFallbackResult(projects, profile);
-        if (fallback.isEmpty()) {
-            return Result.success("当前没有合适的推荐项目，建议你完善科研画像后再来获取个性化推荐。");
-        }
-
-        StringBuilder sb = new StringBuilder("根据你的科研画像，为你推荐以下招募中的科研项目：\n\n");
+        StringBuilder sb = new StringBuilder("根据你的个人信息和科研画像，为你推荐以下科研项目：\n\n");
         int index = 1;
-        for (Map<String, Object> item : fallback) {
+        for (Map<String, Object> item : recommendations) {
             ResearchProject project = (ResearchProject) item.get("project");
             String reason = (String) item.get("reason");
             sb.append(index).append(". ").append(project.getProjectName()).append("\n");
-            sb.append("   ").append(reason).append("\n");
+            sb.append("   推荐理由：").append(reason).append("\n");
             sb.append("   简介：").append(defaultIfEmpty(project.getProjectDescription(), "暂无简介")).append("\n");
             sb.append("   类型：").append(defaultIfEmpty(project.getProjectType(), "未分类")).append(" | 领域：")
               .append(defaultIfEmpty(project.getResearchFields(), "未填写")).append("\n\n");

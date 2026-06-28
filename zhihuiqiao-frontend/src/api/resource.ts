@@ -77,6 +77,18 @@ export function getMyBookings(borrowerId: number) {
 }
 
 /**
+ * 查询我收到的预约列表（资源所有者视角）
+ * @param resourceId 资源ID（可选）
+ */
+export function getOwnerBookings(resourceId?: number | string) {
+  return request({
+    url: '/api/resource/booking/owner',
+    method: 'get',
+    params: resourceId != null ? { resourceId } : undefined
+  })
+}
+
+/**
  * 审批资源预约
  * @param id 预约ID
  * @param status 审批状态
@@ -102,13 +114,83 @@ export function cancelBooking(id: number) {
 }
 
 /**
- * 归还资源
+ * 借用方申请归还资源
  * @param id 预约ID
  */
-export function returnResource(id: number) {
+export function requestReturn(id: number | string) {
   return request({
-    url: `/api/resource/booking/${id}/return`,
+    url: `/api/resource/booking/${id}/return-request`,
     method: 'put'
+  })
+}
+
+/**
+ * 资源所有者确认归还资源
+ * @param id 预约ID
+ */
+export function confirmReturn(id: number | string) {
+  return request({
+    url: `/api/resource/booking/${id}/return-confirm`,
+    method: 'put'
+  })
+}
+
+/**
+ * 上报资源损坏赔偿
+ * @param id 预约ID
+ * @param data 损坏赔偿信息
+ */
+export function reportDamage(id: number | string, data: Record<string, any>) {
+  return request({
+    url: `/api/resource/booking/${id}/damage`,
+    method: 'post',
+    data
+  })
+}
+
+/**
+ * 处理资源损坏赔偿
+ * @param id 损坏记录ID
+ * @param resolveRemark 处理备注
+ */
+export function resolveDamage(id: number | string, resolveRemark?: string) {
+  return request({
+    url: `/api/resource/damage/${id}/resolve`,
+    method: 'put',
+    params: resolveRemark ? { resolveRemark } : undefined
+  })
+}
+
+/**
+ * 查询损坏赔偿记录列表
+ * @param params 查询参数
+ */
+export function listDamageRecords(params: {
+  resourceId?: number | string
+  bookingId?: number | string
+}) {
+  return request({
+    url: '/api/resource/damage-records',
+    method: 'get',
+    params
+  })
+}
+
+/**
+ * 查询资源预约日历
+ * @param resourceId 资源ID
+ * @param startDate 开始日期 YYYY-MM-DD
+ * @param endDate 结束日期 YYYY-MM-DD
+ */
+export function getResourceCalendar(
+  resourceId: number | string,
+  startDate: string,
+  endDate: string
+) {
+  return request({
+    url: `/api/resource/${resourceId}/calendar`,
+    method: 'get',
+    params: { startDate, endDate }
   })
 }
 

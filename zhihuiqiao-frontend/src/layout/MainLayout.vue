@@ -40,7 +40,6 @@
             <el-menu-item v-if="userStore.isStudent || userStore.isAdmin" index="/app/research/applications">我的申请</el-menu-item>
             <!-- 我的项目：学生、教师、管理员均可管理自己发布的项目 -->
             <el-menu-item v-if="userStore.isStudent || userStore.isTeacher || userStore.isAdmin" index="/app/research/my-projects">我的项目</el-menu-item>
-            <el-menu-item v-if="userStore.isStudent || userStore.isTeacher" index="/app/research/profile">科研画像</el-menu-item>
           </el-sub-menu>
 
           <!-- 资源流转：企业账号无对应权限，隐藏整组菜单 -->
@@ -99,6 +98,12 @@
       <header class="top-header">
         <div class="breadcrumb-area">
           <span class="greeting">{{ greetingText }}，{{ userStore.userInfo?.username || '用户' }}</span>
+        </div>
+
+        <!-- 全局搜索入口 -->
+        <div class="global-search-trigger" @click="goToSearch">
+          <el-icon><Search /></el-icon>
+          <span>全局搜索</span>
         </div>
 
         <div class="header-actions">
@@ -219,6 +224,13 @@ const roleText = computed(() => {
  */
 function goToNotifications() {
   router.push('/app/notifications')
+}
+
+/**
+ * 跳转至全局搜索页
+ */
+function goToSearch() {
+  router.push('/app/search')
 }
 
 /**
@@ -454,6 +466,26 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: var(--zh-space-4);
+}
+
+.global-search-trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--zh-space-2);
+  padding: 8px 16px;
+  border-radius: 100px;
+  background: var(--zh-bg-elevated);
+  border: 1px solid var(--zh-border-light);
+  color: var(--zh-text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all var(--zh-transition-fast);
+
+  &:hover {
+    border-color: var(--zh-primary-soft);
+    color: var(--zh-primary);
+    box-shadow: var(--zh-shadow-sm);
+  }
 }
 
 .action-item {

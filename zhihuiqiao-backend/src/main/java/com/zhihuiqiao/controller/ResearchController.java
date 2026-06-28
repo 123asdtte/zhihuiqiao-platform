@@ -12,6 +12,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,6 +32,7 @@ public class ResearchController {
     private final ResearcherProfileService researcherProfileService;
     private final ResearchProjectService researchProjectService;
     private final ProjectApplicationService projectApplicationService;
+    private final ProjectMemberService projectMemberService;
     private final EnterpriseDemandService enterpriseDemandService;
     private final SysUserService sysUserService;
     private final NotificationService notificationService;
@@ -107,6 +109,13 @@ public class ResearchController {
             project.setViews(0);
         }
         researchProjectService.save(project);
+
+        // 将发布人加入项目成员表，角色为负责人
+        Long publisherId = project.getPublisherId();
+        if (publisherId != null) {
+            projectMemberService.joinProject(project.getId(), publisherId, "leader");
+        }
+
         return Result.success(project.getId());
     }
 
@@ -254,6 +263,37 @@ public class ResearchController {
         return Result.success(result);
     }
 
+    @Operation(summary = "查询我加入的科研项目")
+    @GetMapping("/project/joined")
+    public Result<Page<ResearchProject>> listJoinedProjects(
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String status) {
+
+        Long currentUserId = getCurrentUserId();
+        List<Long> projectIds = projectMemberService.listProjectIdsByUserId(currentUserId);
+        if (projectIds.isEmpty()) {
+            return Result.success(new Page<>(pageNum, pageSize));
+        }
+
+        Page<ResearchProject> page = new Page<>(pageNum, pageSize);
+        LambdaQueryWrapper<ResearchProject> wrapper = new LambdaQueryWrapper<>();
+        wrapper.in(ResearchProject::getId, projectIds)
+                .orderByDesc(ResearchProject::getCreateTime);
+
+        if (StringUtils.hasText(status)) {
+            wrapper.eq(ResearchProject::getStatus, status);
+        }
+        if (StringUtils.hasText(keyword)) {
+            wrapper.like(ResearchProject::getProjectName, keyword);
+        }
+
+        Page<ResearchProject> result = researchProjectService.page(page, wrapper);
+        result.getRecords().forEach(this::fillPublisherName);
+        return Result.success(result);
+    }
+
     // ==================== 项目申请 ====================
 
     @Operation(summary = "提交项目加入申请")
@@ -271,11 +311,11 @@ public class ResearchController {
             application.setApplicantId(currentUserId);
         }
 
-        // 防止重复申请
+        // 防止重复申请：仅允许在不存在待处理、面试中、已通过或已确认的申请时再次提交
         LambdaQueryWrapper<ProjectApplication> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ProjectApplication::getProjectId, application.getProjectId())
                 .eq(ProjectApplication::getApplicantId, application.getApplicantId())
-                .ne(ProjectApplication::getStatus, "rejected");
+                .in(ProjectApplication::getStatus, List.of("pending", "interview", "approved", "confirmed"));
         if (projectApplicationService.count(wrapper) > 0) {
             return Result.error("您已提交过申请，请勿重复申请");
         }
@@ -452,26 +492,26 @@ public class ResearchController {
             return Result.error("无权审批该项目的申请");
         }
 
+        // 仅允许合法的状态流转
+        if (!List.of("approved", "rejected", "interview").contains(status)) {
+            return Result.error("无效的审核状态");
+        }
+
         application.setStatus(status);
         application.setReplyMessage(replyMessage);
         application.setHandleTime(LocalDateTime.now());
         boolean result = projectApplicationService.updateById(application);
 
-        // 审核通过时，更新项目当前成员数
-        if ("approved".equals(status) && project != null) {
-            project.setCurrentMembers(project.getCurrentMembers() + 1);
-            if (project.getCurrentMembers() >= project.getMaxMembers()) {
-                project.setStatus("ongoing");
-            }
-            researchProjectService.updateById(project);
-        }
-
         // 发送审核结果通知给申请人
         if (project != null) {
-            String auditResult = "approved".equals(status) ? "已通过" : "未通过";
+            String auditResult = switch (status) {
+                case "approved" -> "已通过，请及时确认入组";
+                case "interview" -> "请等待进一步沟通安排";
+                default -> "未通过";
+            };
             notificationService.sendNotification(
                     application.getApplicantId(),
-                    "项目申请" + auditResult,
+                    "项目申请" + ("approved".equals(status) ? "已通过" : "interview".equals(status) ? "待沟通" : "未通过"),
                     "您对项目「" + project.getProjectName() + "」的加入申请" + auditResult +
                             (StringUtils.hasText(replyMessage) ? "，回复：" + replyMessage : "。"),
                     "application",
@@ -481,6 +521,143 @@ public class ResearchController {
         }
 
         return Result.success(result);
+    }
+
+    @Operation(summary = "申请人撤回项目申请")
+    @PutMapping("/application/{id}/withdraw")
+    public Result<Boolean> withdrawApplication(@PathVariable Long id) {
+        Long currentUserId = getCurrentUserId();
+        try {
+            return Result.success(projectApplicationService.withdrawApplication(id, currentUserId));
+        } catch (RuntimeException e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    @Operation(summary = "发布人将申请标记为待沟通")
+    @PutMapping("/application/{id}/interview")
+    public Result<Boolean> interviewApplication(@PathVariable Long id,
+                                                @RequestParam(required = false) String replyMessage) {
+        ProjectApplication application = projectApplicationService.getById(id);
+        if (application == null) {
+            return Result.error("申请记录不存在");
+        }
+        ResearchProject project = researchProjectService.getById(application.getProjectId());
+        if (project == null) {
+            return Result.error("项目不存在");
+        }
+        Long currentUserId = getCurrentUserId();
+        String currentRole = getCurrentRoleType();
+        if (!"admin".equals(currentRole) && !project.getPublisherId().equals(currentUserId)) {
+            return Result.error("无权操作该项目的申请");
+        }
+        try {
+            return Result.success(projectApplicationService.interviewApplication(id, replyMessage));
+        } catch (RuntimeException e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    @Operation(summary = "申请人确认入组")
+    @PutMapping("/application/{id}/confirm")
+    @Transactional(rollbackFor = Exception.class)
+    public Result<Boolean> confirmAdmission(@PathVariable Long id) {
+        Long currentUserId = getCurrentUserId();
+        ProjectApplication application = projectApplicationService.getById(id);
+        if (application == null) {
+            return Result.error("申请记录不存在");
+        }
+        if (!application.getApplicantId().equals(currentUserId)) {
+            return Result.error("无权确认他人申请");
+        }
+        if (!"approved".equals(application.getStatus())) {
+            return Result.error("当前状态无法确认入组");
+        }
+
+        ResearchProject project = researchProjectService.getById(application.getProjectId());
+        if (project == null) {
+            return Result.error("项目不存在");
+        }
+
+        // 校验人数上限
+        int currentMembers = project.getCurrentMembers() == null ? 0 : project.getCurrentMembers();
+        int maxMembers = project.getMaxMembers() == null ? Integer.MAX_VALUE : project.getMaxMembers();
+        if (currentMembers >= maxMembers) {
+            return Result.error("项目成员已满，无法加入");
+        }
+
+        // 更新申请状态为已确认
+        application.setStatus("confirmed");
+        application.setHandleTime(LocalDateTime.now());
+        projectApplicationService.updateById(application);
+
+        // 写入项目成员表
+        projectMemberService.joinProject(project.getId(), currentUserId, "member");
+
+        // 更新项目当前成员数，人满后转为进行中
+        project.setCurrentMembers(currentMembers + 1);
+        if (project.getCurrentMembers() >= maxMembers) {
+            project.setStatus("ongoing");
+        }
+        researchProjectService.updateById(project);
+
+        return Result.success(true);
+    }
+
+    // ==================== 项目成员 ====================
+
+    @Operation(summary = "查询项目成员列表")
+    @GetMapping("/project/{projectId}/members")
+    public Result<List<ProjectMember>> listProjectMembers(@PathVariable Long projectId) {
+        return Result.success(projectMemberService.listActiveMembersByProjectId(projectId));
+    }
+
+    @Operation(summary = "移除项目成员")
+    @DeleteMapping("/project/{projectId}/member/{userId}")
+    public Result<Boolean> removeProjectMember(@PathVariable Long projectId, @PathVariable Long userId) {
+        ResearchProject project = researchProjectService.getById(projectId);
+        if (project == null) {
+            return Result.error("项目不存在");
+        }
+        Long currentUserId = getCurrentUserId();
+        String currentRole = getCurrentRoleType();
+        if (!"admin".equals(currentRole) && !project.getPublisherId().equals(currentUserId)) {
+            return Result.error("无权管理该项目成员");
+        }
+        // 不能移除项目负责人（发布者）
+        if (userId.equals(project.getPublisherId())) {
+            return Result.error("不能移除项目负责人");
+        }
+        boolean success = projectMemberService.removeMember(projectId, userId);
+        if (success) {
+            // 同步减少项目当前成员数
+            Integer currentMembers = project.getCurrentMembers();
+            if (currentMembers != null && currentMembers > 1) {
+                project.setCurrentMembers(currentMembers - 1);
+                researchProjectService.updateById(project);
+            }
+        }
+        return Result.success(success);
+    }
+
+    @Operation(summary = "更新项目成员角色")
+    @PutMapping("/project/{projectId}/member/{userId}/role")
+    public Result<Boolean> updateMemberRole(@PathVariable Long projectId,
+                                            @PathVariable Long userId,
+                                            @RequestParam String role) {
+        ResearchProject project = researchProjectService.getById(projectId);
+        if (project == null) {
+            return Result.error("项目不存在");
+        }
+        Long currentUserId = getCurrentUserId();
+        String currentRole = getCurrentRoleType();
+        if (!"admin".equals(currentRole) && !project.getPublisherId().equals(currentUserId)) {
+            return Result.error("无权管理该项目成员");
+        }
+        if (!List.of("leader", "member").contains(role)) {
+            return Result.error("无效的角色");
+        }
+        return Result.success(projectMemberService.updateMemberRole(projectId, userId, role));
     }
 
     // ==================== 企业需求 ====================

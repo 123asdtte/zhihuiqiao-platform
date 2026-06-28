@@ -163,9 +163,11 @@ const myApplications = ref<any[]>([])
 function statusText(status: string) {
   const map: Record<string, string> = {
     recruiting: '招募中',
+    in_progress: '进行中',
     ongoing: '进行中',
     completed: '已完成',
-    closed: '已关闭'
+    closed: '已关闭',
+    pending_audit: '待审核'
   }
   return map[status] || status
 }

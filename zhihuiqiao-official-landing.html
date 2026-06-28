@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>智汇桥 — 连接学术与实践的智慧桥梁</title>
+  <meta name="description" content="智汇桥连接教师、学生、实验室与企业，通过智能撮合、资源共享与个性化学习辅助，为高校科研合作提效赋能。" />
+
+  <!-- ==================== 外部依赖 ==================== -->
+  <!-- Google Fonts: Inter（干净现代的无衬线字体） -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS v4 浏览器版 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+
+  <!-- Lucide 图标库 CDN -->
+  <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+
+  <!-- ==================== Tailwind 自定义主题 ==================== -->
+  <style type="text/tailwindcss">
+    /* 
+     * 内联主题配置：定义智汇桥品牌色彩系统
+     * 背景色：纯白 #FFFFFF，卡片/提升区域：浅灰 #F7F8FA
+     * 品牌色：绿色 #32F08C，文字色：深色 #1A1B1D
+     */
+    @theme inline {
+      --color-background: #FFFFFF;
+      --color-foreground: #1A1B1D;
+      --color-card: #F7F8FA;
+      --color-primary: #32F08C;
+      --color-primary-dark: #2ad47a;
+      --color-muted: #F7F8FA;
+      --color-muted-foreground: #5C5F66;
+      --color-accent: #32F08C;
+      --color-border: rgba(0,0,0,0.08);
+      --color-tertiary: #8A8D96;
+    }
+
+    /* ==================== 全局基础样式 ==================== */
+    /* 设置 Inter 为全局默认字体，确保中文回退到系统字体 */
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+                   'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei',
+                   'Noto Sans CJK SC', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ==================== 导航栏滚动阴影（纯 CSS 实现） ==================== */
+    /*
+     * 使用 CSS 滚动驱动动画（Scroll-driven Animations）
+     * 当页面滚动超过 10px 时，导航栏自动添加底部阴影
+     * 无需任何 JavaScript，性能更优
+     */
+    @supports (animation-timeline: scroll()) {
+      .nav-shadow {
+        animation: nav-shadow-anim linear both;
+        animation-timeline: scroll();
+        animation-range: 0px 10px;
+      }
+      @keyframes nav-shadow-anim {
+        from { box-shadow: 0 0 0 0 rgba(0,0,0,0); }
+        to   { box-shadow: 0 1px 12px 0 rgba(0,0,0,0.06); }
+      }
+    }
+
+    /* 回退方案：不支持滚动动画的浏览器使用固定阴影 */
+    @supports not (animation-timeline: scroll()) {
+      .nav-shadow {
+        box-shadow: 0 1px 12px 0 rgba(0,0,0,0.06);
+      }
+    }
+
+    /* ==================== 英雄区域背景光效 ==================== */
+    /* 右上角微妙的绿色径向渐变光晕，营造科技感 */
+    .hero-glow {
+      background:
+        radial-gradient(
+          ellipse 60% 50% at 85% 15%,
+          rgba(50, 240, 140, 0.04) 0%,
+          transparent 70%
+        );
+    }
+
+    /* ==================== 按钮悬浮微交互 ==================== */
+    /* 主按钮（绿色实心）悬停时变暗并上移 1px */
+    .btn-primary {
+      transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 2px 8px rgba(50, 240, 140, 0.25);
+    }
+    .btn-primary:hover {
+      background-color: #2ad47a;
+      box-shadow: 0 4px 16px rgba(50, 240, 140, 0.35);
+      transform: translateY(-1px);
+    }
+
+    /* 次要按钮（白色描边）悬停时边框变深 */
+    .btn-secondary {
+      transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .btn-secondary:hover {
+      border-color: #1A1B1D;
+      color: #1A1B1D;
+    }
+
+    /* ==================== 导航链接悬停效果 ==================== */
+    .nav-link {
+      transition: color 200ms ease;
+    }
+
+    /* ==================== 功能卡片悬浮效果 ==================== */
+    .feature-card {
+      transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .feature-card:hover {
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+      transform: translateY(-4px);
+    }
+
+    /* ==================== 技术标签悬浮效果 ==================== */
+    .tech-tag {
+      transition: all 180ms ease;
+    }
+    .tech-tag:hover {
+      background-color: rgba(50, 240, 140, 0.08);
+      border-color: rgba(50, 240, 140, 0.3);
+      color: #2ad47a;
+    }
+
+    /* ==================== Hero 插图动画 ==================== */
+    /* 知识网络中的节点缓慢脉动效果 */
+    @keyframes pulse-soft {
+      0%, 100% { opacity: 0.6; r: 4; }
+      50%      { opacity: 1; r: 5; }
+    }
+    @keyframes pulse-ring {
+      0%   { r: 8;  opacity: 0.3; }
+      100% { r: 16; opacity: 0; }
+    }
+    @keyframes dash-flow {
+      to { stroke-dashoffset: -20; }
+    }
+
+    /* ==================== 统计数字渐入动画 ==================== */
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-up {
+      animation: fade-up 0.6s ease-out both;
+    }
+    .animate-fade-up-delay-1 { animation-delay: 0.1s; }
+    .animate-fade-up-delay-2 { animation-delay: 0.2s; }
+    .animate-fade-up-delay-3 { animation-delay: 0.3s; }
+  </style>
+</head>
+
+<body class="bg-background text-foreground antialiased">
+  <!-- ==================================================================
+       第一部分：固定导航栏
+       - 高度 64px，毛玻璃效果（rgba 白色背景 + backdrop-filter 模糊）
+       - 左侧 Logo + 品牌名，中间导航链接，右侧 CTA 按钮
+       - 滚动时自动添加底部阴影（纯 CSS 实现）
+       ================================================================== -->
+  <header class="nav-shadow sticky top-0 z-50 w-full border-b border-border"
+          style="background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
+    <nav class="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
+      <!-- 左侧：Logo 区域 -->
+      <a href="#" class="flex items-center gap-2.5">
+        <!-- Logo 图标：32x32 圆角方块，绿色背景，白色"桥"字 -->
+        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-bold text-white"
+             style="font-size: 15px; line-height: 1;">
+          桥
+        </div>
+        <!-- 品牌名称 + 英文副标题 -->
+        <div class="flex flex-col">
+          <span class="text-sm font-semibold leading-none text-foreground">智汇桥</span>
+          <span class="mt-0.5 text-[10px] leading-none text-tertiary">Zhihuiqiao</span>
+        </div>
+      </a>
+
+      <!-- 中间：导航链接（桌面端显示，移动端隐藏） -->
+      <ul class="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
+        <li><a href="#" class="nav-link text-foreground font-medium">首页</a></li>
+        <li><a href="#features" class="nav-link hover:text-primary">核心功能</a></li>
+        <li><a href="#tech" class="nav-link hover:text-primary">技术架构</a></li>
+        <li><a href="#about" class="nav-link hover:text-primary">关于我们</a></li>
+      </ul>
+
+      <!-- 右侧：CTA 按钮 -->
+      <a href="#cta"
+         class="inline-flex items-center rounded-lg border border-primary px-4 py-2 text-sm font-medium text-primary transition-all duration-200 hover:bg-primary hover:text-white">
+        立即体验
+      </a>
+    </nav>
+  </header>
+
+  <!-- ==================================================================
+       第二部分：英雄区域（Hero Section）
+       - 页面核心视觉焦点，左文字 + 右插图的双栏布局
+       - 左侧包含：徽标标签、大标题、副标题、双 CTA 按钮、信任指标
+       - 右侧包含：SVG 知识网络插图（抽象圆形和连接线）
+       ================================================================== -->
+  <section class="hero-glow relative overflow-hidden bg-background">
+    <div class="mx-auto grid max-w-6xl gap-12 px-6 py-20 md:py-28 lg:grid-cols-12 lg:gap-16 lg:py-32">
+      <!-- 左侧内容区域（占据 7 列） -->
+      <div class="flex flex-col justify-center lg:col-span-7">
+        <!-- 小徽标标签：AI 驱动 -->
+        <div class="mb-6 inline-flex w-fit items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium"
+             style="background: rgba(50, 240, 140, 0.1); color: #2ad47a;">
+          <!-- Sparkles 图标（小火花） -->
+          <i data-lucide="sparkles" class="h-3.5 w-3.5"></i>
+          AI 驱动 · 智能平台
+        </div>
+
+        <!-- 大标题：两行显示，超大加粗字体 -->
+        <h1 class="text-4xl font-extrabold leading-[1.08] tracking-tight text-foreground sm:text-5xl lg:text-6xl"
+            style="letter-spacing: -0.03em;">
+          连接学术与实践的<br />智慧桥梁
+        </h1>
+
+        <!-- 副标题段落 -->
+        <p class="mt-6 max-w-lg text-base leading-relaxed text-muted-foreground">
+          智汇桥连接教师、学生、实验室与企业，通过智能撮合、资源共享与个性化学习辅助，为高校科研合作提效赋能。
+        </p>
+
+        <!-- 双 CTA 按钮 -->
+        <div class="mt-8 flex flex-wrap items-center gap-3">
+          <!-- 主按钮：开始使用（绿色实心） -->
+          <a href="#cta"
+             class="btn-primary inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white"
+             style="background-color: #32F08C;">
+            开始使用
+            <!-- 箭头右图标 -->
+            <i data-lucide="arrow-right" class="h-4 w-4"></i>
+          </a>
+          <!-- 次要按钮：了解更多（白色描边） -->
+          <a href="#features"
+             class="btn-secondary inline-flex items-center rounded-xl border border-[#D1D5DB] px-6 py-3 text-sm font-medium text-muted-foreground">
+            了解更多
+          </a>
+        </div>
+
+        <!-- 信任指标：小字灰色信息 -->
+        <div class="mt-8 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-tertiary">
+          <span class="flex items-center gap-1.5">
+            <!-- 绿色圆点分隔符 -->
+            <span class="h-1.5 w-1.5 rounded-full bg-primary" style="opacity: 0.6;"></span>
+            1000+ 已入驻师生
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span class="h-1.5 w-1.5 rounded-full bg-primary" style="opacity: 0.6;"></span>
+            500+ 已匹配项目
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span class="h-1.5 w-1.5 rounded-full bg-primary" style="opacity: 0.6;"></span>
+            98% 满意度
+          </span>
+        </div>
+      </div>
+
+      <!-- 右侧插图区域（占据 5 列） -->
+      <div class="flex items-center justify-center lg:col-span-5">
+        <!-- 白色卡片容器：圆角 + 阴影，内部放置 SVG 插图 -->
+        <div class="relative w-full max-w-md overflow-hidden rounded-2xl border border-[#F0F0F0] bg-white shadow-lg"
+             style="box-shadow: 0 20px 60px rgba(0, 0, 0, 0.06);">
+          <!-- 插图区域顶部渐变背景 -->
+          <div class="relative h-72 sm:h-80"
+               style="background: linear-gradient(135deg, rgba(50, 240, 140, 0.08) 0%, rgba(255, 255, 255, 1) 60%);">
+            <!-- SVG 知识网络插图：抽象节点 + 连接线 + 动态效果 -->
+            <svg viewBox="0 0 400 320" xmlns="http://www.w3.org/2000/svg"
+                 class="absolute inset-0 h-full w-full">
+              <!-- 背景：极淡的圆形装饰 -->
+              <circle cx="200" cy="160" r="120" fill="none" stroke="rgba(50,240,140,0.06)" stroke-width="1" />
+              <circle cx="200" cy="160" r="80" fill="none" stroke="rgba(50,240,140,0.04)" stroke-width="1" />
+
+              <!-- 连接线（代表知识/协作关系的路径） -->
+              <!-- 主连接线网络 -->
+              <path d="M 120 100 L 200 140 L 280 90" fill="none" stroke="rgba(50,240,140,0.3)" stroke-width="1.5"
+                    stroke-dasharray="6 4" style="animation: dash-flow 3s linear infinite;" />
+              <path d="M 200 140 L 180 220 L 260 240" fill="none" stroke="rgba(50,240,140,0.2)" stroke-width="1.5"
+                    stroke-dasharray="6 4" style="animation: dash-flow 4s linear infinite;" />
+              <path d="M 120 100 L 140 200 L 180 220" fill="none" stroke="rgba(50,240,140,0.15)" stroke-width="1" />
+              <path d="M 280 90 L 320 170 L 260 240" fill="none" stroke="rgba(50,240,140,0.15)" stroke-width="1" />
+              <path d="M 200 140 L 160 80" fill="none" stroke="rgba(50,240,140,0.2)" stroke-width="1" />
+              <path d="M 200 140 L 300 130" fill="none" stroke="rgba(50,240,140,0.2)" stroke-width="1" />
+
+              <!-- 次要连接线（更淡、更细） -->
+              <path d="M 100 160 L 200 140" fill="none" stroke="rgba(50,240,140,0.1)" stroke-width="1" />
+              <path d="M 320 100 L 280 90" fill="none" stroke="rgba(50,240,140,0.1)" stroke-width="1" />
+              <path d="M 260 240 L 300 200" fill="none" stroke="rgba(50,240,140,0.1)" stroke-width="1" />
+
+              <!-- 主要节点（大圆 + 光环效果） -->
+              <!-- 中心主节点 -->
+              <circle cx="200" cy="140" r="20" fill="rgba(50,240,140,0.15)" stroke="rgba(50,240,140,0.4)" stroke-width="1.5" />
+              <circle cx="200" cy="140" r="8" fill="#32F08C" style="animation: pulse-soft 3s ease-in-out infinite;" />
+              <!-- 中心节点脉动光环 -->
+              <circle cx="200" cy="140" fill="none" stroke="rgba(50,240,140,0.3)" stroke-width="1"
+                      style="animation: pulse-ring 3s ease-out infinite;" />
+
+              <!-- 左上节点 -->
+              <circle cx="120" cy="100" r="14" fill="rgba(50,240,140,0.1)" stroke="rgba(50,240,140,0.3)" stroke-width="1" />
+              <circle cx="120" cy="100" r="5" fill="#32F08C" style="animation: pulse-soft 3s ease-in-out 0.5s infinite;" />
+
+              <!-- 右上节点 -->
+              <circle cx="280" cy="90" r="12" fill="rgba(50,240,140,0.1)" stroke="rgba(50,240,140,0.25)" stroke-width="1" />
+              <circle cx="280" cy="90" r="4" fill="#32F08C" style="animation: pulse-soft 3s ease-in-out 1s infinite;" />
+
+              <!-- 左下节点 -->
+              <circle cx="180" cy="220" r="12" fill="rgba(50,240,140,0.1)" stroke="rgba(50,240,140,0.25)" stroke-width="1" />
+              <circle cx="180" cy="220" r="4" fill="#32F08C" style="animation: pulse-soft 3s ease-in-out 1.5s infinite;" />
+
+              <!-- 右下节点 -->
+              <circle cx="260" cy="240" r="10" fill="rgba(50,240,140,0.08)" stroke="rgba(50,240,140,0.2)" stroke-width="1" />
+              <circle cx="260" cy="240" r="3.5" fill="#32F08C" style="animation: pulse-soft 3s ease-in-out 2s infinite;" />
+
+              <!-- 小装饰节点（更小、更淡的圆点） -->
+              <circle cx="160" cy="80" r="6" fill="rgba(50,240,140,0.08)" stroke="rgba(50,240,140,0.15)" stroke-width="0.5" />
+              <circle cx="160" cy="80" r="2.5" fill="rgba(50,240,140,0.6)" />
+
+              <circle cx="300" cy="130" r="5" fill="rgba(50,240,140,0.08)" stroke="rgba(50,240,140,0.15)" stroke-width="0.5" />
+              <circle cx="300" cy="130" r="2" fill="rgba(50,240,140,0.6)" />
+
+              <circle cx="140" cy="200" r="5" fill="rgba(50,240,140,0.06)" stroke="rgba(50,240,140,0.12)" stroke-width="0.5" />
+              <circle cx="140" cy="200" r="2" fill="rgba(50,240,140,0.5)" />
+
+              <circle cx="320" cy="170" r="7" fill="rgba(50,240,140,0.08)" stroke="rgba(50,240,140,0.15)" stroke-width="0.5" />
+              <circle cx="320" cy="170" r="2.5" fill="rgba(50,240,140,0.5)" />
+
+              <circle cx="100" cy="160" r="4" fill="rgba(50,240,140,0.06)" />
+              <circle cx="320" cy="100" r="3" fill="rgba(50,240,140,0.06)" />
+              <circle cx="300" cy="200" r="3" fill="rgba(50,240,140,0.06)" />
+
+              <!-- 中心节点文字标签 -->
+              <text x="200" y="175" text-anchor="middle" fill="rgba(50,240,140,0.5)" font-size="10" font-family="Inter, sans-serif" font-weight="500">
+                智汇核心
+              </text>
+            </svg>
+          </div>
+
+          <!-- 卡片底部信息区域 -->
+          <div class="border-t border-[#F0F0F0] px-5 py-4">
+            <div class="flex items-center justify-between">
+              <!-- 左侧：模拟状态信息 -->
+              <div>
+                <p class="text-xs font-medium text-foreground">智能匹配引擎</p>
+                <p class="mt-0.5 text-[11px] text-tertiary">实时分析中 · 已处理 2,847 条匹配请求</p>
+              </div>
+              <!-- 右侧：状态指示灯 -->
+              <div class="flex items-center gap-1.5">
+                <span class="relative flex h-2 w-2">
+                  <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75"></span>
+                  <span class="relative inline-flex h-2 w-2 rounded-full bg-primary"></span>
+                </span>
+                <span class="text-[11px] text-primary font-medium">运行中</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================================================================
+       第三部分：核心功能模块
+       - 白色背景，居中标题 + 三列功能卡片
+       - 每张卡片包含：图标、标题、描述
+       - 悬浮效果：阴影加深 + 上移 4px
+       ================================================================== -->
+  <section id="features" class="bg-background">
+    <div class="mx-auto max-w-6xl px-6 py-20 md:py-24">
+      <!-- 区域标题 -->
+      <div class="text-center">
+        <h2 class="text-2xl font-bold text-foreground sm:text-3xl">核心功能模块</h2>
+        <p class="mx-auto mt-3 max-w-xl text-sm text-muted-foreground leading-relaxed">
+          三大核心能力，全方位覆盖高校科研合作场景，让每一份资源都能找到最佳归属。
+        </p>
+      </div>
+
+      <!-- 功能卡片网格：3 列（桌面）/ 1 列（移动端） -->
+      <div class="mt-14 grid gap-6 md:grid-cols-3">
+
+        <!-- 功能卡片 1：科研项目智能撮合 -->
+        <div class="feature-card rounded-2xl border border-[#F0F0F0] bg-white p-8 shadow-sm">
+          <!-- 图标容器：48x48 圆角方块，绿色淡背景 -->
+          <div class="flex h-12 w-12 items-center justify-center rounded-xl"
+               style="background: rgba(50, 240, 140, 0.1);">
+            <!-- Users 图标：代表多人协作匹配 -->
+            <i data-lucide="users" class="h-6 w-6" style="color: #32F08C;"></i>
+          </div>
+          <!-- 卡片标题 -->
+          <h3 class="mt-5 text-lg font-semibold text-foreground">科研项目智能撮合</h3>
+          <!-- 卡片描述 -->
+          <p class="mt-2 text-sm leading-relaxed text-muted-foreground">
+            基于研究方向、技能标签与时间匹配度，AI 自动为教师与学生推荐最合适的科研项目和合作伙伴，大幅降低信息不对称。
+          </p>
+          <!-- 卡片底部链接 -->
+          <a href="#" class="mt-5 inline-flex items-center gap-1 text-sm font-medium text-primary hover:gap-2 transition-all duration-200">
+            了解详情
+            <i data-lucide="arrow-right" class="h-3.5 w-3.5"></i>
+          </a>
+        </div>
+
+        <!-- 功能卡片 2：校园闲置资源流转 -->
+        <div class="feature-card rounded-2xl border border-[#F0F0F0] bg-white p-8 shadow-sm">
+          <!-- 图标容器 -->
+          <div class="flex h-12 w-12 items-center justify-center rounded-xl"
+               style="background: rgba(50, 240, 140, 0.1);">
+            <!-- Layers 图标：代表资源层级与流转 -->
+            <i data-lucide="layers" class="h-6 w-6" style="color: #32F08C;"></i>
+          </div>
+          <!-- 卡片标题 -->
+          <h3 class="mt-5 text-lg font-semibold text-foreground">校园闲置资源流转</h3>
+          <!-- 卡片描述 -->
+          <p class="mt-2 text-sm leading-relaxed text-muted-foreground">
+            实验室设备、闲置教材、科研数据集等资源统一管理、智能推荐、高效流转，让沉睡的资产重新产生价值。
+          </p>
+          <!-- 卡片底部链接 -->
+          <a href="#" class="mt-5 inline-flex items-center gap-1 text-sm font-medium text-primary hover:gap-2 transition-all duration-200">
+            了解详情
+            <i data-lucide="arrow-right" class="h-3.5 w-3.5"></i>
+          </a>
+        </div>
+
+        <!-- 功能卡片 3：教学辅助个性化支持 -->
+        <div class="feature-card rounded-2xl border border-[#F0F0F0] bg-white p-8 shadow-sm">
+          <!-- 图标容器 -->
+          <div class="flex h-12 w-12 items-center justify-center rounded-xl"
+               style="background: rgba(50, 240, 140, 0.1);">
+            <!-- Sparkles 图标：代表 AI 个性化智能 -->
+            <i data-lucide="sparkles" class="h-6 w-6" style="color: #32F08C;"></i>
+          </div>
+          <!-- 卡片标题 -->
+          <h3 class="mt-5 text-lg font-semibold text-foreground">教学辅助个性化支持</h3>
+          <!-- 卡片描述 -->
+          <p class="mt-2 text-sm leading-relaxed text-muted-foreground">
+            AI 学习助手根据学生知识图谱提供个性化推荐，自动生成学习路径，智能批改作业，帮助教师精准掌握学情。
+          </p>
+          <!-- 卡片底部链接 -->
+          <a href="#" class="mt-5 inline-flex items-center gap-1 text-sm font-medium text-primary hover:gap-2 transition-all duration-200">
+            了解详情
+            <i data-lucide="arrow-right" class="h-3.5 w-3.5"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================================================================
+       第四部分：数据统计展示
+       - 浅灰色背景（#F7F8FA）提升层次感
+       - 4 列数据展示，桌面端带分隔线
+       - 大号数字 + 小号标签
+       ================================================================== -->
+  <section class="bg-card">
+    <div class="mx-auto max-w-6xl px-6 py-20 md:py-24">
+      <div class="grid grid-cols-2 md:grid-cols-4">
+        <!-- 统计项 1：已入驻师生 -->
+        <div class="animate-fade-up text-center py-6 md:py-0">
+          <div class="text-3xl font-bold text-foreground sm:text-4xl" style="letter-spacing: -0.02em;">1000+</div>
+          <div class="mt-2 text-sm text-tertiary">已入驻师生</div>
+        </div>
+
+        <!-- 分隔线（桌面端显示） -->
+        <div class="hidden md:block" style="border-left: 1px solid rgba(0,0,0,0.08);"></div>
+
+        <!-- 统计项 2：已匹配科研项目 -->
+        <div class="animate-fade-up animate-fade-up-delay-1 text-center py-6 md:py-0 md:pl-8">
+          <div class="text-3xl font-bold text-foreground sm:text-4xl" style="letter-spacing: -0.02em;">500+</div>
+          <div class="mt-2 text-sm text-tertiary">已匹配科研项目</div>
+        </div>
+
+        <!-- 分隔线 -->
+        <div class="hidden md:block" style="border-left: 1px solid rgba(0,0,0,0.08);"></div>
+
+        <!-- 统计项 3：流转资源数 -->
+        <div class="animate-fade-up animate-fade-up-delay-2 text-center py-6 md:py-0 md:pl-8">
+          <div class="text-3xl font-bold text-foreground sm:text-4xl" style="letter-spacing: -0.02em;">2000+</div>
+          <div class="mt-2 text-sm text-tertiary">流转资源数</div>
+        </div>
+
+        <!-- 分隔线 -->
+        <div class="hidden md:block" style="border-left: 1px solid rgba(0,0,0,0.08);"></div>
+
+        <!-- 统计项 4：用户满意度 -->
+        <div class="animate-fade-up animate-fade-up-delay-3 text-center py-6 md:py-0 md:pl-8">
+          <div class="text-3xl font-bold text-foreground sm:text-4xl" style="letter-spacing: -0.02em;">98%</div>
+          <div class="mt-2 text-sm text-tertiary">用户满意度</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================================================================
+       第五部分：技术架构
+       - 白色背景，分类展示技术栈
+       - 药丸形标签，悬浮变绿色
+       - 4 列布局，按类别分组
+       ================================================================== -->
+  <section id="tech" class="bg-background">
+    <div class="mx-auto max-w-6xl px-6 py-20 md:py-24">
+      <!-- 区域标题 -->
+      <div class="text-center">
+        <h2 class="text-2xl font-bold text-foreground sm:text-3xl">技术架构</h2>
+        <p class="mx-auto mt-3 max-w-xl text-sm text-muted-foreground leading-relaxed">
+          采用现代化技术栈，确保系统高性能、高可用与可扩展性。
+        </p>
+      </div>
+
+      <!-- 技术栈标签网格 -->
+      <div class="mt-14 grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+
+        <!-- 类别 1：前端技术 -->
+        <div>
+          <h3 class="mb-4 text-xs font-semibold tracking-wider text-tertiary uppercase">前端框架</h3>
+          <div class="flex flex-wrap gap-2">
+            <span class="tech-tag inline-flex items-center rounded-full border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-1.5 text-xs font-medium text-muted-foreground cursor-default">Vue 3</span>
+            <span class="tech-tag inline-flex items-center rounded-full border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-1.5 text-xs font-medium text-muted-foreground cursor-default">React</span>
+            <span class="tech-tag inline-flex items-center rounded-full border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-1.5 text-xs font-medium text-muted-foreground cursor-default">Tailwind CSS</span>
+            <span class="tech-tag inline-flex items-center rounded-full border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-1.5 text-xs font-medium text-muted-foreground cursor-default">TypeScript</span>
+          </div>
+        </div>
+
+        <!-- 类别 2：后端技术 -->
+        <div>
+          <h3 class="mb-4 text-xs font-semibold tracking-wider text-tertiary uppercase">后端服务</h3>
+          <div class="flex flex-wrap gap-2">
+            <span class="tech-tag inline-flex items-center rounded-full border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-1.5 text-xs font-medium text-muted-foreground cursor-default">Spring Boot</span>
+            <span class="tech-tag inline-flex items-center rounded-full border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-1.5 text-xs font-medium text-muted-foreground cursor-default">Python</span>
+            <span class="tech-tag inline-flex items-center rounded-full border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-1.5 text-xs font-medium text-muted-foreground cursor-default">FastAPI</span>
+            <span class="tech-tag inline-flex items-center rounded-full border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-1.5 text-xs font-medium text-muted-foreground cursor-default">MyBatis</span>
+          </div>
+        </div>
+
+        <!-- 类别 3：数据与存储 -->
+        <div>
+          <h3 class="mb-4 text-xs font-semibold tracking-wider text-tertiary uppercase">数据存储</h3>
+          <div class="flex flex-wrap gap-2">
+            <span class="tech-tag inline-flex items-center rounded-full border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-1.5 text-xs font-medium text-muted-foreground cursor-default">MySQL</span>
+            <span class="tech-tag inline-flex items-center rounded-full border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-1.5 text-xs font-medium text-muted-foreground cursor-default">Redis</span>
+            <span class="tech-tag inline-flex items-center rounded-full border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-1.5 text-xs font-medium text-muted-foreground cursor-default">Elasticsearch</span>
+            <span class="tech-tag inline-flex items-center rounded-full border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-1.5 text-xs font-medium text-muted-foreground cursor-default">MinIO</span>
+          </div>
+        </div>
+
+        <!-- 类别 4：AI 与基础设施 -->
+        <div>
+          <h3 class="mb-4 text-xs font-semibold tracking-wider text-tertiary uppercase">AI &amp; 基础设施</h3>
+          <div class="flex flex-wrap gap-2">
+            <span class="tech-tag inline-flex items-center rounded-full border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-1.5 text-xs font-medium text-muted-foreground cursor-default">大语言模型</span>
+            <span class="tech-tag inline-flex items-center rounded-full border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-1.5 text-xs font-medium text-muted-foreground cursor-default">Docker</span>
+            <span class="tech-tag inline-flex items-center rounded-full border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-1.5 text-xs font-medium text-muted-foreground cursor-default">Nginx</span>
+            <span class="tech-tag inline-flex items-center rounded-full border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-1.5 text-xs font-medium text-muted-foreground cursor-default">CI/CD</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================================================================
+       第六部分：行动号召区域（CTA）
+       - 深色背景（#1A1B1D 渐变），形成视觉对比
+       - 大标题 + 副标题 + 绿色 CTA 按钮
+       - 旨在引导用户立即注册体验
+       ================================================================== -->
+  <section id="cta" class="relative overflow-hidden" style="background: linear-gradient(135deg, #1A1B1D 0%, #2d2f33 100%);">
+    <!-- 装饰性背景元素：微妙的绿色光晕 -->
+    <div class="absolute inset-0"
+         style="background: radial-gradient(ellipse 50% 60% at 50% 50%, rgba(50, 240, 140, 0.06) 0%, transparent 70%);">
+    </div>
+
+    <div class="relative mx-auto max-w-3xl px-6 py-20 text-center md:py-28">
+      <!-- 大标题 -->
+      <h2 class="text-3xl font-bold text-white sm:text-4xl" style="letter-spacing: -0.02em;">
+        准备好开启智慧协作了吗？
+      </h2>
+      <!-- 副标题（白色半透明） -->
+      <p class="mx-auto mt-4 max-w-lg text-sm leading-relaxed" style="color: rgba(255,255,255,0.65);">
+        加入智汇桥，与千名师生共建高效科研协作生态。免费注册，即刻体验 AI 驱动的智能匹配与资源共享。
+      </p>
+      <!-- CTA 按钮 -->
+      <a href="#"
+         class="btn-primary mt-8 inline-flex items-center gap-2 rounded-xl px-8 py-3.5 text-sm font-semibold text-white"
+         style="background-color: #32F08C;">
+        免费开始使用
+        <i data-lucide="arrow-right" class="h-4 w-4"></i>
+      </a>
+    </div>
+  </section>
+
+  <!-- ==================================================================
+       第七部分：关于我们
+       - 简洁的团队/项目介绍区块
+       ================================================================== -->
+  <section id="about" class="bg-background">
+    <div class="mx-auto max-w-6xl px-6 py-20 md:py-24">
+      <div class="grid gap-12 md:grid-cols-2 md:items-center">
+        <!-- 左侧：文字介绍 -->
+        <div>
+          <h2 class="text-2xl font-bold text-foreground sm:text-3xl">关于我们</h2>
+          <p class="mt-4 text-sm leading-relaxed text-muted-foreground">
+            智汇桥由一支热爱教育与技术的团队打造。我们来自国内多所知名高校，深知科研协作中的痛点与效率瓶颈。
+          </p>
+          <p class="mt-3 text-sm leading-relaxed text-muted-foreground">
+            我们相信，通过 AI 技术与精心设计的平台体验，可以真正打破学术与实践之间的壁垒，让每一位师生都能更专注于创造。
+          </p>
+          <div class="mt-6 flex items-center gap-4">
+            <div class="flex -space-x-2">
+              <!-- 头像占位（使用纯色圆形代替） -->
+              <div class="h-8 w-8 rounded-full border-2 border-white" style="background: linear-gradient(135deg, #32F08C, #2ad47a);"></div>
+              <div class="h-8 w-8 rounded-full border-2 border-white" style="background: linear-gradient(135deg, #6366f1, #818cf8);"></div>
+              <div class="h-8 w-8 rounded-full border-2 border-white" style="background: linear-gradient(135deg, #f59e0b, #fbbf24);"></div>
+            </div>
+            <span class="text-xs text-tertiary">核心团队成员</span>
+          </div>
+        </div>
+        <!-- 右侧：特性列表 -->
+        <div class="grid grid-cols-2 gap-4">
+          <!-- 特性卡片 -->
+          <div class="rounded-xl bg-card p-5">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg" style="background: rgba(50, 240, 140, 0.1);">
+              <i data-lucide="shield-check" class="h-5 w-5" style="color: #32F08C;"></i>
+            </div>
+            <h4 class="mt-3 text-sm font-semibold text-foreground">安全可靠</h4>
+            <p class="mt-1 text-xs leading-relaxed text-muted-foreground">数据加密存储，多重安全保障机制</p>
+          </div>
+          <div class="rounded-xl bg-card p-5">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg" style="background: rgba(50, 240, 140, 0.1);">
+              <i data-lucide="zap" class="h-5 w-5" style="color: #32F08C;"></i>
+            </div>
+            <h4 class="mt-3 text-sm font-semibold text-foreground">高效响应</h4>
+            <p class="mt-1 text-xs leading-relaxed text-muted-foreground">毫秒级匹配，流畅的用户体验</p>
+          </div>
+          <div class="rounded-xl bg-card p-5">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg" style="background: rgba(50, 240, 140, 0.1);">
+              <i data-lucide="globe" class="h-5 w-5" style="color: #32F08C;"></i>
+            </div>
+            <h4 class="mt-3 text-sm font-semibold text-foreground">开放互联</h4>
+            <p class="mt-1 text-xs leading-relaxed text-muted-foreground">支持多平台接入与 API 集成</p>
+          </div>
+          <div class="rounded-xl bg-card p-5">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg" style="background: rgba(50, 240, 140, 0.1);">
+              <i data-lucide="heart-handshake" class="h-5 w-5" style="color: #32F08C;"></i>
+            </div>
+            <h4 class="mt-3 text-sm font-semibold text-foreground">用户至上</h4>
+            <p class="mt-1 text-xs leading-relaxed text-muted-foreground">持续迭代，倾听每一位用户的声音</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================================================================
+       第八部分：页脚
+       - 白色背景 + 顶部边框
+       - 三列布局：品牌信息、快捷链接、联系方式
+       - 底部版权栏
+       ================================================================== -->
+  <footer class="border-t border-border bg-background">
+    <!-- 主要内容区域 -->
+    <div class="mx-auto max-w-6xl px-6 py-12 md:py-16">
+      <div class="grid gap-8 md:grid-cols-3">
+        <!-- 第一列：品牌信息 -->
+        <div>
+          <a href="#" class="flex items-center gap-2.5">
+            <!-- Logo 图标（复用导航栏 Logo 样式） -->
+            <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-bold text-white"
+                 style="font-size: 15px; line-height: 1;">
+              桥
+            </div>
+            <div class="flex flex-col">
+              <span class="text-sm font-semibold leading-none text-foreground">智汇桥</span>
+              <span class="mt-0.5 text-[10px] leading-none text-tertiary">Zhihuiqiao</span>
+            </div>
+          </a>
+          <p class="mt-4 max-w-xs text-xs leading-relaxed text-muted-foreground">
+            智汇桥 — 连接学术与实践的智慧桥梁。致力于通过 AI 技术赋能高校科研协作，提升效率，创造价值。
+          </p>
+        </div>
+
+        <!-- 第二列：快捷链接 -->
+        <div>
+          <h4 class="text-xs font-semibold tracking-wider text-tertiary uppercase">快捷链接</h4>
+          <ul class="mt-4 space-y-2.5">
+            <li><a href="#features" class="text-sm text-muted-foreground hover:text-primary transition-colors duration-200">核心功能</a></li>
+            <li><a href="#tech" class="text-sm text-muted-foreground hover:text-primary transition-colors duration-200">技术架构</a></li>
+            <li><a href="#about" class="text-sm text-muted-foreground hover:text-primary transition-colors duration-200">关于我们</a></li>
+            <li><a href="#cta" class="text-sm text-muted-foreground hover:text-primary transition-colors duration-200">立即体验</a></li>
+          </ul>
+        </div>
+
+        <!-- 第三列：联系方式 -->
+        <div>
+          <h4 class="text-xs font-semibold tracking-wider text-tertiary uppercase">联系方式</h4>
+          <ul class="mt-4 space-y-2.5">
+            <li class="flex items-center gap-2 text-sm text-muted-foreground">
+              <i data-lucide="mail" class="h-4 w-4 text-tertiary"></i>
+              contact@zhihuiqiao.com
+            </li>
+            <li class="flex items-center gap-2 text-sm text-muted-foreground">
+              <i data-lucide="map-pin" class="h-4 w-4 text-tertiary"></i>
+              中国 · 北京市海淀区
+            </li>
+            <li class="flex items-center gap-2 text-sm text-muted-foreground">
+              <i data-lucide="github" class="h-4 w-4 text-tertiary"></i>
+              github.com/zhihuiqiao
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- 版权栏 -->
+    <div class="border-t border-border">
+      <div class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-6 py-5 text-xs text-tertiary sm:flex-row">
+        <span>&copy; 2025 智汇桥 Zhihuiqiao. All rights reserved.</span>
+        <div class="flex gap-4">
+          <a href="#" class="hover:text-primary transition-colors duration-200">隐私政策</a>
+          <a href="#" class="hover:text-primary transition-colors duration-200">使用条款</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ==================== JavaScript 初始化 ==================== -->
+  <script>
+    /**
+     * Lucide 图标初始化
+     * 扫描页面上所有 data-lucide 属性的元素，替换为对应的 SVG 图标
+     */
+    document.addEventListener('DOMContentLoaded', function () {
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+    });
+
+    /**
+     * 平滑滚动：点击锚点链接时平滑滚动到目标位置
+     * 为所有以 # 开头的锚点链接添加平滑滚动行为
+     */
+    document.querySelectorAll('a[href^="#"]').forEach(function (anchor) {
+      anchor.addEventListener('click', function (e) {
+        var targetId = this.getAttribute('href');
+        if (targetId === '#') return; // 忽略纯 # 链接
+        var target = document.querySelector(targetId);
+        if (target) {
+          e.preventDefault();
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+  </script>
+</body>
+</html>

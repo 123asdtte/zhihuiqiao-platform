@@ -12,6 +12,7 @@ export function getNotificationList(params: {
   pageNum?: number
   pageSize?: number
   onlyUnread?: boolean
+  type?: string
 }) {
   return request({
     url: '/api/notifications',
@@ -48,5 +49,37 @@ export function markAllNotificationsAsRead() {
   return request({
     url: '/api/notifications/read-all',
     method: 'put'
+  })
+}
+
+/**
+ * 通知设置项类型
+ */
+export interface NotificationSettingItem {
+  id?: number
+  userId?: number
+  type: string
+  enabled: number
+}
+
+/**
+ * 获取当前用户的通知设置
+ */
+export function getNotificationSettings() {
+  return request({
+    url: '/api/notifications/settings',
+    method: 'get'
+  })
+}
+
+/**
+ * 更新当前用户的通知设置
+ * @param settings 设置列表
+ */
+export function updateNotificationSettings(settings: NotificationSettingItem[]) {
+  return request({
+    url: '/api/notifications/settings',
+    method: 'put',
+    data: settings
   })
 }

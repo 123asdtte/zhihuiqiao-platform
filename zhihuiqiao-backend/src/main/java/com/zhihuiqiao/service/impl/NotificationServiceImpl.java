@@ -1,13 +1,14 @@
 package com.zhihuiqiao.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zhihuiqiao.entity.Notification;
 import com.zhihuiqiao.mapper.NotificationMapper;
 import com.zhihuiqiao.service.NotificationService;
+import com.zhihuiqiao.service.NotificationSettingService;
 import com.zhihuiqiao.vo.NotificationMessageVO;
 import com.zhihuiqiao.websocket.NotificationWebSocketHandler;
 import org.springframework.beans.BeanUtils;
@@ -26,13 +27,25 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
      */
     private final NotificationWebSocketHandler webSocketHandler;
 
-    public NotificationServiceImpl(NotificationWebSocketHandler webSocketHandler) {
+    /**
+     * 通知设置服务，用于判断用户是否开启某类通知
+     */
+    private final NotificationSettingService notificationSettingService;
+
+    public NotificationServiceImpl(NotificationWebSocketHandler webSocketHandler,
+                                   NotificationSettingService notificationSettingService) {
         this.webSocketHandler = webSocketHandler;
+        this.notificationSettingService = notificationSettingService;
     }
 
     @Override
     public Long sendNotification(Long userId, String title, String content, String type,
                                  Long relatedId, String relatedType) {
+        // 根据用户通知设置判断是否发送
+        if (notificationSettingService != null && !notificationSettingService.isEnabled(userId, type)) {
+            return null;
+        }
+
         Notification notification = new Notification();
         notification.setUserId(userId);
         notification.setTitle(title);
@@ -65,13 +78,16 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
     }
 
     @Override
-    public IPage<Notification> listUserNotifications(Page<Notification> page, Long userId, Boolean onlyUnread) {
+    public IPage<Notification> listUserNotifications(Page<Notification> page, Long userId, Boolean onlyUnread, String type) {
         LambdaQueryWrapper<Notification> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Notification::getUserId, userId)
                 .eq(Notification::getDeleted, 0)
                 .orderByDesc(Notification::getCreateTime);
         if (Boolean.TRUE.equals(onlyUnread)) {
             wrapper.eq(Notification::getIsRead, 0);
+        }
+        if (type != null && !type.isEmpty()) {
+            wrapper.eq(Notification::getType, type);
         }
         return baseMapper.selectPage(page, wrapper);
     }
@@ -87,19 +103,19 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
 
     @Override
     public boolean markAsRead(Long id, Long userId) {
-        LambdaUpdateWrapper<Notification> wrapper = new LambdaUpdateWrapper<>();
-        wrapper.eq(Notification::getId, id)
-                .eq(Notification::getUserId, userId)
-                .set(Notification::getIsRead, 1);
+        UpdateWrapper<Notification> wrapper = new UpdateWrapper<>();
+        wrapper.eq("id", id)
+                .eq("user_id", userId)
+                .set("is_read", 1);
         return baseMapper.update(null, wrapper) > 0;
     }
 
     @Override
     public boolean markAllAsRead(Long userId) {
-        LambdaUpdateWrapper<Notification> wrapper = new LambdaUpdateWrapper<>();
-        wrapper.eq(Notification::getUserId, userId)
-                .eq(Notification::getIsRead, 0)
-                .set(Notification::getIsRead, 1);
+        UpdateWrapper<Notification> wrapper = new UpdateWrapper<>();
+        wrapper.eq("user_id", userId)
+                .eq("is_read", 0)
+                .set("is_read", 1);
         return baseMapper.update(null, wrapper) > 0;
     }
 }

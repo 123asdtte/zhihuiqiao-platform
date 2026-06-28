@@ -6,11 +6,17 @@ import com.zhihuiqiao.annotation.OperationLogAnnotation;
 import com.zhihuiqiao.common.Result;
 import com.zhihuiqiao.entity.IdleResource;
 import com.zhihuiqiao.entity.ResourceBooking;
+import com.zhihuiqiao.entity.ResourceDamageRecord;
 import com.zhihuiqiao.entity.ResourceTransferLog;
+import com.zhihuiqiao.entity.SysUser;
+import com.zhihuiqiao.entity.UserPenaltyRecord;
 import com.zhihuiqiao.service.IdleResourceService;
 import com.zhihuiqiao.service.NotificationService;
 import com.zhihuiqiao.service.ResourceBookingService;
+import com.zhihuiqiao.service.ResourceDamageRecordService;
 import com.zhihuiqiao.service.ResourceTransferLogService;
+import com.zhihuiqiao.service.SysUserService;
+import com.zhihuiqiao.service.UserPenaltyRecordService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -36,6 +42,9 @@ public class ResourceController {
     private final IdleResourceService idleResourceService;
     private final ResourceBookingService resourceBookingService;
     private final ResourceTransferLogService resourceTransferLogService;
+    private final ResourceDamageRecordService resourceDamageRecordService;
+    private final UserPenaltyRecordService userPenaltyRecordService;
+    private final SysUserService sysUserService;
     private final NotificationService notificationService;
 
     /**
@@ -223,7 +232,44 @@ public class ResourceController {
     @Operation(summary = "查询我的预约列表（管理员可查看全部预约）")
     @GetMapping("/booking/my")
     public Result<List<ResourceBooking>> listMyBookings(@RequestParam(required = false) Long borrowerId) {
-        // 从 SecurityContext 获取当前登录用户ID与角色
+        return doListBookings(borrowerId, false);
+    }
+
+    @Operation(summary = "查询我收到的预约列表（资源所有者视角）")
+    @GetMapping("/booking/owner")
+    public Result<List<ResourceBooking>> listOwnerBookings(@RequestParam(required = false) Long resourceId) {
+        Long currentUserId = getCurrentUserId();
+        String currentRole = getCurrentRoleType();
+        if (currentUserId == null) {
+            return Result.error("用户未登录");
+        }
+
+        // 查询当前用户拥有的所有资源
+        LambdaQueryWrapper<IdleResource> resourceWrapper = new LambdaQueryWrapper<>();
+        resourceWrapper.eq(IdleResource::getOwnerId, currentUserId);
+        if (resourceId != null) {
+            resourceWrapper.eq(IdleResource::getId, resourceId);
+        }
+        List<Long> resourceIds = idleResourceService.list(resourceWrapper).stream()
+                .map(IdleResource::getId)
+                .toList();
+
+        if (resourceIds.isEmpty()) {
+            return Result.success(List.of());
+        }
+
+        LambdaQueryWrapper<ResourceBooking> wrapper = new LambdaQueryWrapper<>();
+        wrapper.in(ResourceBooking::getResourceId, resourceIds)
+                .orderByDesc(ResourceBooking::getCreateTime);
+        List<ResourceBooking> bookings = resourceBookingService.list(wrapper);
+        enrichBookings(bookings);
+        return Result.success(bookings);
+    }
+
+    /**
+     * 公共方法：查询预约列表并填充资源名称、检测超期
+     */
+    private Result<List<ResourceBooking>> doListBookings(Long filterUserId, boolean ownerView) {
         Long currentUserId = getCurrentUserId();
         String currentRole = getCurrentRoleType();
 
@@ -231,12 +277,10 @@ public class ResourceController {
         wrapper.orderByDesc(ResourceBooking::getCreateTime);
 
         if ("admin".equals(currentRole)) {
-            // 管理员：可查看全部预约；如果传了 borrowerId 则按借用人筛选
-            if (borrowerId != null) {
-                wrapper.eq(ResourceBooking::getBorrowerId, borrowerId);
+            if (filterUserId != null) {
+                wrapper.eq(ResourceBooking::getBorrowerId, filterUserId);
             }
         } else {
-            // 非管理员：只能查看自己的预约
             if (currentUserId == null) {
                 return Result.error("用户未登录");
             }
@@ -244,14 +288,27 @@ public class ResourceController {
         }
 
         List<ResourceBooking> bookings = resourceBookingService.list(wrapper);
-        // 填充资源名称，便于前端展示
+        enrichBookings(bookings);
+        return Result.success(bookings);
+    }
+
+    /**
+     * 填充预约列表的展示信息并检测超期
+     */
+    private void enrichBookings(List<ResourceBooking> bookings) {
+        LocalDateTime now = LocalDateTime.now();
         bookings.forEach(booking -> {
             IdleResource resource = idleResourceService.getById(booking.getResourceId());
             if (resource != null) {
                 booking.setResourceName(resource.getResourceName());
             }
+
+            if (List.of("approved", "ongoing", "return_request").contains(booking.getStatus())
+                    && booking.getEndTime() != null
+                    && now.isAfter(booking.getEndTime())) {
+                booking.setOverdueStatus("overdue");
+            }
         });
-        return Result.success(bookings);
     }
 
     @OperationLogAnnotation(module = "资源流转", operation = "审批资源预约")
@@ -280,8 +337,12 @@ public class ResourceController {
         booking.setReplyMessage(replyMessage);
         boolean result = resourceBookingService.updateById(booking);
 
-        // 审批通过时，记录流转日志并更新资源状态
+        // 审批通过时，预约进入进行中状态，资源变为已租出
         if ("approved".equals(status) && resource != null) {
+            booking.setStatus("ongoing");
+            booking.setUpdateTime(LocalDateTime.now());
+            resourceBookingService.updateById(booking);
+
             resource.setStatus("rented");
             idleResourceService.updateById(resource);
 
@@ -354,48 +415,328 @@ public class ResourceController {
         return Result.success(result);
     }
 
-    @OperationLogAnnotation(module = "资源流转", operation = "归还资源")
-    @Operation(summary = "归还资源")
-    @PutMapping("/booking/{id}/return")
-    public Result<Boolean> returnResource(@PathVariable Long id) {
+    @OperationLogAnnotation(module = "资源流转", operation = "申请归还资源")
+    @Operation(summary = "借用方申请归还资源")
+    @PutMapping("/booking/{id}/return-request")
+    public Result<Boolean> requestReturn(@PathVariable Long id) {
         ResourceBooking booking = resourceBookingService.getById(id);
         if (booking == null) {
             return Result.error("预约记录不存在");
         }
 
-        // 校验权限：借用人本人、资源所有者或管理员可以归还
+        // 仅借用方本人或管理员可申请归还
         IdleResource resource = idleResourceService.getById(booking.getResourceId());
         if (resource == null) {
             return Result.error("资源不存在");
         }
         Long currentUserId = getCurrentUserId();
         String currentRole = getCurrentRoleType();
-        if (!"admin".equals(currentRole)
-                && !resource.getOwnerId().equals(currentUserId)
-                && !booking.getBorrowerId().equals(currentUserId)) {
-            return Result.error("无权归还该资源");
+        if (!"admin".equals(currentRole) && !booking.getBorrowerId().equals(currentUserId)) {
+            return Result.error("无权申请归还该资源");
         }
 
-        booking.setStatus("returned");
-        booking.setReturnTime(LocalDateTime.now());
+        if (!"ongoing".equals(booking.getStatus()) && !"approved".equals(booking.getStatus())) {
+            return Result.error("当前状态不可申请归还");
+        }
+
+        booking.setStatus("return_request");
+        booking.setReturnRequestTime(LocalDateTime.now());
+        booking.setUpdateTime(LocalDateTime.now());
         boolean result = resourceBookingService.updateById(booking);
 
-        if (resource != null) {
-            resource.setStatus("available");
-            idleResourceService.updateById(resource);
+        // 通知资源所有者确认归还
+        notificationService.sendNotification(
+                resource.getOwnerId(),
+                "资源归还待确认",
+                "用户对资源「" + resource.getResourceName() + "」发起了归还申请，请及时确认。",
+                "booking",
+                booking.getId(),
+                "resource_booking"
+        );
 
-            ResourceTransferLog log = new ResourceTransferLog();
-            log.setResourceId(booking.getResourceId());
-            log.setBookingId(booking.getId());
-            log.setFromUserId(booking.getBorrowerId());
-            log.setToUserId(resource.getOwnerId());
-            log.setTransferType("return");
-            log.setRemark("资源归还");
-            log.setCreateTime(LocalDateTime.now());
-            resourceTransferLogService.save(log);
+        return Result.success(result);
+    }
+
+    @OperationLogAnnotation(module = "资源流转", operation = "确认归还资源")
+    @Operation(summary = "资源所有者确认归还资源")
+    @PutMapping("/booking/{id}/return-confirm")
+    public Result<Boolean> confirmReturn(@PathVariable Long id) {
+        ResourceBooking booking = resourceBookingService.getById(id);
+        if (booking == null) {
+            return Result.error("预约记录不存在");
+        }
+
+        IdleResource resource = idleResourceService.getById(booking.getResourceId());
+        if (resource == null) {
+            return Result.error("资源不存在");
+        }
+
+        // 仅资源所有者或管理员可确认归还
+        Long currentUserId = getCurrentUserId();
+        String currentRole = getCurrentRoleType();
+        if (!"admin".equals(currentRole) && !resource.getOwnerId().equals(currentUserId)) {
+            return Result.error("无权确认归还该资源");
+        }
+
+        if (!"return_request".equals(booking.getStatus())) {
+            return Result.error("当前状态不可确认归还");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        booking.setStatus("return_confirmed");
+        booking.setReturnConfirmTime(now);
+        booking.setReturnTime(now);
+        booking.setUpdateTime(now);
+
+        // 检查是否超期：实际确认归还时间晚于预约结束时间
+        if (booking.getEndTime() != null && now.isAfter(booking.getEndTime())) {
+            booking.setOverdueStatus("overdue");
+            createOverduePenalty(booking, resource);
+        } else {
+            booking.setOverdueStatus("normal");
+        }
+
+        boolean result = resourceBookingService.updateById(booking);
+
+        // 资源重新变为可预约状态
+        resource.setStatus("available");
+        idleResourceService.updateById(resource);
+
+        // 记录流转日志
+        ResourceTransferLog log = new ResourceTransferLog();
+        log.setResourceId(booking.getResourceId());
+        log.setBookingId(booking.getId());
+        log.setFromUserId(booking.getBorrowerId());
+        log.setToUserId(resource.getOwnerId());
+        log.setTransferType("return");
+        log.setRemark("资源归还确认");
+        log.setCreateTime(now);
+        resourceTransferLogService.save(log);
+
+        // 通知借用人归还已确认
+        notificationService.sendNotification(
+                booking.getBorrowerId(),
+                "资源归还已确认",
+                "您对资源「" + resource.getResourceName() + "」的归还申请已被确认。",
+                "booking",
+                booking.getId(),
+                "resource_booking"
+        );
+
+        return Result.success(result);
+    }
+
+    /**
+     * 创建超期违约记录并扣除信用分
+     */
+    private void createOverduePenalty(ResourceBooking booking, IdleResource resource) {
+        SysUser borrower = sysUserService.getById(booking.getBorrowerId());
+        if (borrower == null) {
+            return;
+        }
+
+        int penaltyScore = 10;
+        borrower.setCreditScore(Math.max(0, (borrower.getCreditScore() == null ? 100 : borrower.getCreditScore()) - penaltyScore));
+        sysUserService.updateById(borrower);
+
+        UserPenaltyRecord penalty = new UserPenaltyRecord();
+        penalty.setUserId(booking.getBorrowerId());
+        penalty.setPenaltyType("overdue");
+        penalty.setRelatedBookingId(booking.getId());
+        penalty.setDescription("资源「" + resource.getResourceName() + "」归还超期");
+        penalty.setPenaltyScore(penaltyScore);
+        penalty.setStatus("active");
+        userPenaltyRecordService.save(penalty);
+
+        notificationService.sendNotification(
+                booking.getBorrowerId(),
+                "资源归还超期",
+                "您对资源「" + resource.getResourceName() + "」的归还已超期，信用分扣除 " + penaltyScore + " 分。",
+                "system",
+                booking.getId(),
+                "user_penalty"
+        );
+    }
+
+    // ==================== 损坏赔偿记录 ====================
+
+    @OperationLogAnnotation(module = "资源流转", operation = "上报资源损坏")
+    @Operation(summary = "上报资源损坏赔偿")
+    @PostMapping("/booking/{id}/damage")
+    public Result<Long> reportDamage(@PathVariable Long id, @RequestBody ResourceDamageRecord damageRecord) {
+        ResourceBooking booking = resourceBookingService.getById(id);
+        if (booking == null) {
+            return Result.error("预约记录不存在");
+        }
+
+        IdleResource resource = idleResourceService.getById(booking.getResourceId());
+        if (resource == null) {
+            return Result.error("资源不存在");
+        }
+
+        // 仅资源所有者或管理员可上报损坏
+        Long currentUserId = getCurrentUserId();
+        String currentRole = getCurrentRoleType();
+        if (!"admin".equals(currentRole) && !resource.getOwnerId().equals(currentUserId)) {
+            return Result.error("无权上报资源损坏");
+        }
+
+        damageRecord.setBookingId(id);
+        damageRecord.setResourceId(booking.getResourceId());
+        damageRecord.setReporterId(currentUserId);
+        damageRecord.setStatus("pending");
+        resourceDamageRecordService.save(damageRecord);
+
+        // 更新预约损坏状态
+        booking.setOverdueStatus("damage_pending".equals(booking.getOverdueStatus()) ? "damage_pending" : "damage_pending");
+        resourceBookingService.updateById(booking);
+
+        // 通知借用人处理赔偿
+        notificationService.sendNotification(
+                booking.getBorrowerId(),
+                "资源损坏赔偿通知",
+                "您借用的资源「" + resource.getResourceName() + "」被上报损坏，请及时处理赔偿事宜。",
+                "booking",
+                booking.getId(),
+                "resource_damage"
+        );
+
+        return Result.success(damageRecord.getId());
+    }
+
+    @OperationLogAnnotation(module = "资源流转", operation = "处理资源损坏赔偿")
+    @Operation(summary = "处理资源损坏赔偿")
+    @PutMapping("/damage/{id}/resolve")
+    public Result<Boolean> resolveDamage(@PathVariable Long id, @RequestParam(required = false) String resolveRemark) {
+        ResourceDamageRecord damageRecord = resourceDamageRecordService.getById(id);
+        if (damageRecord == null) {
+            return Result.error("损坏记录不存在");
+        }
+
+        ResourceBooking booking = resourceBookingService.getById(damageRecord.getBookingId());
+        if (booking == null) {
+            return Result.error("预约记录不存在");
+        }
+
+        IdleResource resource = idleResourceService.getById(damageRecord.getResourceId());
+        if (resource == null) {
+            return Result.error("资源不存在");
+        }
+
+        // 仅资源所有者或管理员可处理赔偿
+        Long currentUserId = getCurrentUserId();
+        String currentRole = getCurrentRoleType();
+        if (!"admin".equals(currentRole) && !resource.getOwnerId().equals(currentUserId)) {
+            return Result.error("无权处理该赔偿记录");
+        }
+
+        damageRecord.setStatus("resolved");
+        damageRecord.setResolveRemark(resolveRemark);
+        damageRecord.setUpdateTime(LocalDateTime.now());
+        boolean result = resourceDamageRecordService.updateById(damageRecord);
+
+        // 创建违约记录并扣分
+        SysUser borrower = sysUserService.getById(booking.getBorrowerId());
+        if (borrower != null && damageRecord.getCompensationAmount() != null
+                && damageRecord.getCompensationAmount().compareTo(java.math.BigDecimal.ZERO) > 0) {
+            int penaltyScore = damageRecord.getCompensationAmount().intValue() / 10;
+            penaltyScore = Math.max(5, Math.min(penaltyScore, 50));
+            borrower.setCreditScore(Math.max(0, (borrower.getCreditScore() == null ? 100 : borrower.getCreditScore()) - penaltyScore));
+            sysUserService.updateById(borrower);
+
+            UserPenaltyRecord penalty = new UserPenaltyRecord();
+            penalty.setUserId(booking.getBorrowerId());
+            penalty.setPenaltyType("damage");
+            penalty.setRelatedBookingId(booking.getId());
+            penalty.setDescription("资源「" + resource.getResourceName() + "」损坏赔偿");
+            penalty.setPenaltyScore(penaltyScore);
+            penalty.setStatus("active");
+            userPenaltyRecordService.save(penalty);
+
+            notificationService.sendNotification(
+                    booking.getBorrowerId(),
+                    "资源损坏赔偿已处理",
+                    "您对资源「" + resource.getResourceName() + "」的损坏赔偿已处理，信用分扣除 " + penaltyScore + " 分。",
+                    "system",
+                    booking.getId(),
+                    "user_penalty"
+            );
         }
 
         return Result.success(result);
+    }
+
+    @Operation(summary = "查询损坏赔偿记录列表")
+    @GetMapping("/damage-records")
+    public Result<List<ResourceDamageRecord>> listDamageRecords(@RequestParam(required = false) Long resourceId,
+                                                                @RequestParam(required = false) Long bookingId) {
+        Long currentUserId = getCurrentUserId();
+        String currentRole = getCurrentRoleType();
+        if (currentUserId == null) {
+            return Result.error("用户未登录");
+        }
+
+        LambdaQueryWrapper<ResourceDamageRecord> wrapper = new LambdaQueryWrapper<>();
+        wrapper.orderByDesc(ResourceDamageRecord::getCreateTime);
+
+        if (resourceId != null) {
+            wrapper.eq(ResourceDamageRecord::getResourceId, resourceId);
+        }
+        if (bookingId != null) {
+            wrapper.eq(ResourceDamageRecord::getBookingId, bookingId);
+        }
+
+        // 非管理员只能查看自己相关记录（上报人或关联预约的借用人/所有者）
+        if (!"admin".equals(currentRole)) {
+            wrapper.and(w -> w.eq(ResourceDamageRecord::getReporterId, currentUserId)
+                    .or()
+                    .inSql(ResourceDamageRecord::getBookingId,
+                            "SELECT id FROM resource_booking WHERE borrower_id = " + currentUserId));
+        }
+
+        return Result.success(resourceDamageRecordService.list(wrapper));
+    }
+
+    // ==================== 资源日历 ====================
+
+    @Operation(summary = "查询资源预约日历")
+    @GetMapping("/{resourceId}/calendar")
+    public Result<List<java.util.Map<String, Object>>> getResourceCalendar(
+            @PathVariable Long resourceId,
+            @RequestParam String startDate,
+            @RequestParam String endDate) {
+
+        IdleResource resource = idleResourceService.getById(resourceId);
+        if (resource == null) {
+            return Result.error("资源不存在");
+        }
+
+        java.time.LocalDate start = java.time.LocalDate.parse(startDate);
+        java.time.LocalDate end = java.time.LocalDate.parse(endDate);
+
+        LambdaQueryWrapper<ResourceBooking> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ResourceBooking::getResourceId, resourceId)
+                .in(ResourceBooking::getStatus, List.of("approved", "ongoing", "return_request"))
+                .ge(ResourceBooking::getStartTime, start.atStartOfDay())
+                .le(ResourceBooking::getEndTime, end.plusDays(1).atStartOfDay());
+        List<ResourceBooking> bookings = resourceBookingService.list(wrapper);
+
+        List<java.util.Map<String, Object>> calendar = new java.util.ArrayList<>();
+        for (java.time.LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
+            java.time.LocalDateTime dayStart = date.atStartOfDay();
+            java.time.LocalDateTime dayEnd = date.plusDays(1).atStartOfDay();
+
+            boolean booked = bookings.stream().anyMatch(b ->
+                    b.getStartTime() != null && b.getEndTime() != null
+                            && b.getStartTime().isBefore(dayEnd) && b.getEndTime().isAfter(dayStart));
+
+            java.util.Map<String, Object> item = new java.util.HashMap<>();
+            item.put("date", date.toString());
+            item.put("available", !booked);
+            calendar.add(item);
+        }
+
+        return Result.success(calendar);
     }
 
     // ==================== 资源流转记录 ====================

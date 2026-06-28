@@ -49,6 +49,21 @@ public class LearningRecord {
     private Integer lastPosition;
 
     /**
+     * 学习笔记
+     */
+    private String note;
+
+    /**
+     * 评分：1-5
+     */
+    private Integer rating;
+
+    /**
+     * 评价内容
+     */
+    private String comment;
+
+    /**
      * 完成时间
      */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

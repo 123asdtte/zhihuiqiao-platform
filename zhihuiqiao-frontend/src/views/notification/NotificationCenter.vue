@@ -8,6 +8,14 @@
       </div>
       <div class="page-header-actions">
         <el-button
+          text
+          class="setting-btn"
+          @click="openSettings"
+        >
+          <el-icon><Setting /></el-icon>
+          通知设置
+        </el-button>
+        <el-button
           type="primary"
           :disabled="unreadCount === 0"
           class="mark-all-btn"
@@ -63,17 +71,55 @@
     <div class="filter-toolbar">
       <div class="filter-tabs">
         <div
-          v-for="tab in filterTabs"
+          v-for="tab in readTabs"
           :key="tab.value"
           class="filter-tab"
-          :class="{ active: filterType === tab.value }"
-          @click="handleFilterChange(tab.value)"
+          :class="{ active: readFilter === tab.value }"
+          @click="handleReadFilterChange(tab.value)"
         >
           {{ tab.label }}
           <span v-if="tab.value === 'unread' && unreadCount > 0" class="tab-badge">{{ unreadCount }}</span>
         </div>
       </div>
+      <div class="filter-tabs type-tabs">
+        <div
+          v-for="tab in typeTabs"
+          :key="tab.value"
+          class="filter-tab"
+          :class="{ active: typeFilter === tab.value }"
+          @click="handleTypeFilterChange(tab.value)"
+        >
+          {{ tab.label }}
+        </div>
+      </div>
     </div>
+
+    <!-- 通知设置抽屉 -->
+    <el-drawer
+      v-model="settingDrawerVisible"
+      title="通知设置"
+      size="420px"
+      :close-on-click-modal="true"
+      destroy-on-close
+    >
+      <div v-loading="settingLoading" class="setting-content">
+        <p class="setting-desc">选择你希望接收的通知类型，关闭后将不再收到对应类型的推送与未读计数。</p>
+        <div class="setting-list">
+          <div v-for="item in settings" :key="item.type" class="setting-item">
+            <div class="setting-info">
+              <div class="setting-title">{{ settingTypeLabel(item.type) }}</div>
+              <div class="setting-subtitle">{{ settingTypeDesc(item.type) }}</div>
+            </div>
+            <el-switch
+              v-model="item.enabled"
+              :active-value="1"
+              :inactive-value="0"
+              @change="handleSettingChange(item)"
+            />
+          </div>
+        </div>
+      </div>
+    </el-drawer>
 
     <!-- 通知列表 -->
     <div class="notification-list-card" v-loading="loading">
@@ -152,13 +198,17 @@ import {
   Clock,
   MessageBox,
   SetUp,
-  Connection
+  Connection,
+  Setting
 } from '@element-plus/icons-vue'
 import { useNotificationStore } from '@/stores/notification'
 import {
   getNotificationList,
   markNotificationAsRead,
-  markAllNotificationsAsRead
+  markAllNotificationsAsRead,
+  getNotificationSettings,
+  updateNotificationSettings,
+  type NotificationSettingItem
 } from '@/api/notification'
 import { getApplicationById } from '@/api/research'
 
@@ -170,12 +220,29 @@ const notificationList = ref<any[]>([])
 const loading = ref(false)
 const unreadCount = computed(() => notificationStore.unreadCount)
 
-// 筛选类型
-const filterType = ref('all')
-const filterTabs = [
+// 已读状态筛选
+const readFilter = ref('all')
+const readTabs = [
   { label: '全部消息', value: 'all' },
   { label: '未读消息', value: 'unread' }
 ]
+
+// 通知类型筛选
+const typeFilter = ref('all')
+const typeTabs = [
+  { label: '全部类型', value: 'all' },
+  { label: '系统', value: 'system' },
+  { label: '项目申请', value: 'application' },
+  { label: '科研项目', value: 'project' },
+  { label: '资源预约', value: 'booking' },
+  { label: '闲置资源', value: 'resource' },
+  { label: '学习资源', value: 'learning' }
+]
+
+// 通知设置
+const settingDrawerVisible = ref(false)
+const settingLoading = ref(false)
+const settings = ref<NotificationSettingItem[]>([])
 
 // 类型统计
 const typeCount = computed(() => {
@@ -210,6 +277,32 @@ function typeLabel(type: string) {
   return map[type] || '通知'
 }
 
+// 通知设置类型标签映射
+function settingTypeLabel(type: string) {
+  const map: Record<string, string> = {
+    system: '系统通知',
+    application: '项目申请通知',
+    project: '科研项目通知',
+    booking: '资源预约通知',
+    resource: '闲置资源通知',
+    learning: '学习资源通知'
+  }
+  return map[type] || '通知'
+}
+
+// 通知设置类型描述映射
+function settingTypeDesc(type: string) {
+  const map: Record<string, string> = {
+    system: '平台公告、系统维护、账号安全等重要消息',
+    application: '项目申请提交、审核结果、入组确认等',
+    project: '项目动态、任务更新、成果归档等',
+    booking: '预约申请、审批结果、归还提醒等',
+    resource: '资源发布、状态变更、损坏上报等',
+    learning: '学习资源更新、学习提醒、评价回复等'
+  }
+  return map[type] || '相关通知'
+}
+
 // 加载通知列表
 async function loadNotifications() {
   loading.value = true
@@ -217,7 +310,8 @@ async function loadNotifications() {
     const res: any = await getNotificationList({
       pageNum: pagination.pageNum,
       pageSize: pagination.pageSize,
-      onlyUnread: filterType.value === 'unread'
+      onlyUnread: readFilter.value === 'unread',
+      type: typeFilter.value === 'all' ? undefined : typeFilter.value
     })
     if (res.code === 200 && res.data) {
       notificationList.value = res.data.records || []
@@ -231,11 +325,52 @@ async function loadNotifications() {
   }
 }
 
-// 筛选切换
-function handleFilterChange(value: string) {
-  filterType.value = value
+// 已读状态筛选切换
+function handleReadFilterChange(value: string) {
+  readFilter.value = value
   pagination.pageNum = 1
   loadNotifications()
+}
+
+// 通知类型筛选切换
+function handleTypeFilterChange(value: string) {
+  typeFilter.value = value
+  pagination.pageNum = 1
+  loadNotifications()
+}
+
+// 打开通知设置
+async function openSettings() {
+  settingDrawerVisible.value = true
+  await loadNotificationSettings()
+}
+
+// 加载通知设置
+async function loadNotificationSettings() {
+  settingLoading.value = true
+  try {
+    const res: any = await getNotificationSettings()
+    if (res.code === 200 && res.data) {
+      settings.value = res.data || []
+    }
+  } catch (error) {
+    ElMessage.error('加载通知设置失败')
+    console.error(error)
+  } finally {
+    settingLoading.value = false
+  }
+}
+
+// 设置项开关切换
+async function handleSettingChange(item: NotificationSettingItem) {
+  try {
+    await updateNotificationSettings([item])
+    ElMessage.success('通知设置已更新')
+  } catch (error) {
+    ElMessage.error('更新通知设置失败')
+    // 失败后恢复原始状态，重新加载
+    await loadNotificationSettings()
+  }
 }
 
 // 分页大小变化
@@ -407,6 +542,10 @@ onMounted(() => {
 // ==================== 筛选工具栏 ====================
 .filter-toolbar {
   margin-bottom: var(--zh-space-5);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--zh-space-4);
 }
 
 .filter-tabs {
@@ -710,5 +849,52 @@ onMounted(() => {
     flex: 1;
     justify-content: center;
   }
+}
+
+// ==================== 通知设置抽屉 ====================
+.setting-content {
+  padding: var(--zh-space-2) var(--zh-space-2) var(--zh-space-6);
+}
+
+.setting-desc {
+  font-size: 13px;
+  color: var(--zh-text-secondary);
+  line-height: 1.6;
+  margin: 0 0 var(--zh-space-5) 0;
+}
+
+.setting-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--zh-space-3);
+}
+
+.setting-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--zh-space-4);
+  background: var(--zh-bg-elevated);
+  border: 1px solid var(--zh-border-light);
+  border-radius: var(--zh-radius);
+}
+
+.setting-info {
+  flex: 1;
+  min-width: 0;
+  padding-right: var(--zh-space-4);
+}
+
+.setting-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--zh-text-primary);
+  margin-bottom: 4px;
+}
+
+.setting-subtitle {
+  font-size: 12px;
+  color: var(--zh-text-secondary);
+  line-height: 1.5;
 }
 </style>

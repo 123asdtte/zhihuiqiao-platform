@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS sys_user (
     grade VARCHAR(50) DEFAULT NULL COMMENT '年级',
     title VARCHAR(100) DEFAULT NULL COMMENT '职称/职务',
     company_name VARCHAR(200) DEFAULT NULL COMMENT '企业名称',
+    credit_score INT DEFAULT 100 COMMENT '信用分：默认100，违约扣分',
     status TINYINT DEFAULT 1 COMMENT '状态：0-禁用 1-正常 2-待审核',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
@@ -106,16 +107,79 @@ CREATE TABLE IF NOT EXISTS project_application (
     project_id BIGINT NOT NULL COMMENT '项目ID',
     applicant_id BIGINT NOT NULL COMMENT '申请人ID',
     apply_reason TEXT COMMENT '申请理由',
-    status VARCHAR(50) DEFAULT 'pending' COMMENT '状态：pending/approved/rejected',
+    status VARCHAR(50) DEFAULT 'pending' COMMENT '状态：pending/interview/approved/rejected/withdrawn/confirmed',
     reply_message TEXT COMMENT '回复消息',
     handle_time DATETIME DEFAULT NULL COMMENT '处理时间',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted TINYINT DEFAULT 0,
     PRIMARY KEY (id),
-    UNIQUE KEY uk_project_applicant (project_id, applicant_id),
+    KEY idx_project_applicant (project_id, applicant_id),
     KEY idx_applicant (applicant_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='项目申请表';
+
+-- 项目成员表
+CREATE TABLE IF NOT EXISTS project_member (
+    id BIGINT NOT NULL AUTO_INCREMENT COMMENT '成员ID',
+    project_id BIGINT NOT NULL COMMENT '项目ID',
+    user_id BIGINT NOT NULL COMMENT '用户ID',
+    role VARCHAR(50) DEFAULT 'member' COMMENT '角色：leader/member',
+    join_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '加入时间',
+    status VARCHAR(50) DEFAULT 'active' COMMENT '状态：active/inactive',
+    deleted TINYINT DEFAULT 0,
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_project_user (project_id, user_id),
+    KEY idx_project (project_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='项目成员表';
+
+-- 项目动态表（公告/进展/讨论）
+CREATE TABLE IF NOT EXISTS project_dynamic (
+    id BIGINT NOT NULL AUTO_INCREMENT COMMENT '动态ID',
+    project_id BIGINT NOT NULL COMMENT '项目ID',
+    publisher_id BIGINT NOT NULL COMMENT '发布人ID',
+    content TEXT NOT NULL COMMENT '动态内容',
+    dynamic_type VARCHAR(50) DEFAULT 'announcement' COMMENT '类型：announcement公告/progress进展/discussion讨论',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted TINYINT DEFAULT 0,
+    PRIMARY KEY (id),
+    KEY idx_project (project_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='项目动态表';
+
+-- 项目任务表
+CREATE TABLE IF NOT EXISTS project_task (
+    id BIGINT NOT NULL AUTO_INCREMENT COMMENT '任务ID',
+    project_id BIGINT NOT NULL COMMENT '项目ID',
+    task_name VARCHAR(200) NOT NULL COMMENT '任务名称',
+    description TEXT COMMENT '任务描述',
+    assignee_id BIGINT DEFAULT NULL COMMENT '负责人ID',
+    deadline DATE DEFAULT NULL COMMENT '截止日期',
+    status VARCHAR(50) DEFAULT 'pending' COMMENT '状态：pending待处理/in_progress进行中/completed已完成',
+    sort_order INT DEFAULT 0 COMMENT '排序',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted TINYINT DEFAULT 0,
+    PRIMARY KEY (id),
+    KEY idx_project (project_id),
+    KEY idx_assignee (assignee_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='项目任务表';
+
+-- 项目成果表
+CREATE TABLE IF NOT EXISTS project_outcome (
+    id BIGINT NOT NULL AUTO_INCREMENT COMMENT '成果ID',
+    project_id BIGINT NOT NULL COMMENT '项目ID',
+    outcome_name VARCHAR(200) NOT NULL COMMENT '成果名称',
+    outcome_type VARCHAR(50) DEFAULT 'other' COMMENT '类型：paper论文/patent专利/code代码/video视频/report报告/other其他',
+    description TEXT COMMENT '成果描述',
+    file_url VARCHAR(500) DEFAULT NULL COMMENT '成果附件URL',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted TINYINT DEFAULT 0,
+    PRIMARY KEY (id),
+    KEY idx_project (project_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='项目成果表';
 
 -- 企业需求表
 CREATE TABLE IF NOT EXISTS enterprise_demand (
@@ -169,8 +233,11 @@ CREATE TABLE IF NOT EXISTS resource_booking (
     start_time DATETIME NOT NULL COMMENT '开始时间',
     end_time DATETIME NOT NULL COMMENT '结束时间',
     purpose TEXT COMMENT '用途说明',
-    status VARCHAR(50) DEFAULT 'pending' COMMENT '状态：pending/approved/rejected/ongoing/returned/cancelled',
-    return_time DATETIME DEFAULT NULL COMMENT '实际归还时间',
+    status VARCHAR(50) DEFAULT 'pending' COMMENT '状态：pending/approved/rejected/ongoing/return_request/return_confirmed/cancelled',
+    return_request_time DATETIME DEFAULT NULL COMMENT '借用方申请归还时间',
+    return_confirm_time DATETIME DEFAULT NULL COMMENT '所有者确认归还时间',
+    return_time DATETIME DEFAULT NULL COMMENT '实际归还时间（与确认归还时间一致）',
+    overdue_status VARCHAR(50) DEFAULT 'none' COMMENT '超期状态：none/normal/overdue/resolved',
     reply_message TEXT COMMENT '回复消息',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -193,6 +260,41 @@ CREATE TABLE IF NOT EXISTS resource_transfer_log (
     PRIMARY KEY (id),
     KEY idx_resource (resource_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='资源流转记录表';
+
+-- 资源损坏赔偿记录表
+CREATE TABLE IF NOT EXISTS resource_damage_record (
+    id BIGINT NOT NULL AUTO_INCREMENT COMMENT '记录ID',
+    booking_id BIGINT NOT NULL COMMENT '关联预约ID',
+    resource_id BIGINT NOT NULL COMMENT '资源ID',
+    reporter_id BIGINT NOT NULL COMMENT '上报人ID',
+    damage_description TEXT COMMENT '损坏描述',
+    damage_images TEXT COMMENT '损坏照片URL，多个以逗号分隔',
+    compensation_amount DECIMAL(10,2) DEFAULT 0 COMMENT '赔偿金额',
+    status VARCHAR(50) DEFAULT 'pending' COMMENT '状态：pending/resolved',
+    resolve_remark TEXT COMMENT '处理备注',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted TINYINT DEFAULT 0,
+    PRIMARY KEY (id),
+    KEY idx_booking (booking_id),
+    KEY idx_resource (resource_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='资源损坏赔偿记录表';
+
+-- 用户违约记录表
+CREATE TABLE IF NOT EXISTS user_penalty_record (
+    id BIGINT NOT NULL AUTO_INCREMENT COMMENT '记录ID',
+    user_id BIGINT NOT NULL COMMENT '违约用户ID',
+    penalty_type VARCHAR(50) NOT NULL COMMENT '违约类型：overdue/damage',
+    related_booking_id BIGINT DEFAULT NULL COMMENT '关联预约ID',
+    description TEXT COMMENT '违约描述',
+    penalty_score INT DEFAULT 0 COMMENT '扣除信用分',
+    status VARCHAR(50) DEFAULT 'active' COMMENT '状态：active/resolved',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted TINYINT DEFAULT 0,
+    PRIMARY KEY (id),
+    KEY idx_user (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户违约记录表';
 
 -- 学习资源表
 CREATE TABLE IF NOT EXISTS learning_resource (
@@ -224,6 +326,9 @@ CREATE TABLE IF NOT EXISTS learning_record (
     progress INT DEFAULT 0 COMMENT '学习进度：0-100',
     status VARCHAR(50) DEFAULT 'learning' COMMENT '状态：learning/completed/favorite',
     last_position INT DEFAULT 0 COMMENT '上次学习位置（秒/页码）',
+    note TEXT COMMENT '学习笔记',
+    rating INT DEFAULT NULL COMMENT '评分：1-5',
+    comment TEXT COMMENT '评价内容',
     complete_time DATETIME DEFAULT NULL COMMENT '完成时间',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -250,6 +355,16 @@ CREATE TABLE IF NOT EXISTS sys_notification (
     KEY idx_user_read (user_id, is_read),
     KEY idx_create_time (create_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='消息通知表';
+
+-- 通知设置表
+CREATE TABLE IF NOT EXISTS sys_notification_setting (
+    id BIGINT NOT NULL AUTO_INCREMENT COMMENT '设置ID',
+    user_id BIGINT NOT NULL COMMENT '用户ID',
+    type VARCHAR(50) NOT NULL COMMENT '通知类型：system/project/application/resource/booking/learning',
+    enabled TINYINT DEFAULT 1 COMMENT '是否启用：0-关闭 1-开启',
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_user_type (user_id, type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='通知设置表';
 
 -- 操作日志表
 CREATE TABLE IF NOT EXISTS operation_log (

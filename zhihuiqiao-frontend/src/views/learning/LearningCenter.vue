@@ -63,9 +63,11 @@
           </template>
         </el-table-column>
         <el-table-column prop="updateTime" label="更新时间" width="160" />
-        <el-table-column label="操作" width="220" fixed="right">
+        <el-table-column label="操作" width="260" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="handleUpdateProgress(row)">更新进度</el-button>
+            <el-button link type="primary" @click="handleUpdateProgress(row)">进度</el-button>
+            <el-button link type="info" @click="handleEditNote(row)">笔记</el-button>
+            <el-button link type="warning" @click="handleEditReview(row)">评价</el-button>
             <el-button v-if="row.status !== 'favorite'" link type="success" @click="handleComplete(row)">完成</el-button>
             <el-button link type="danger" @click="handleDelete(row.id)">删除</el-button>
           </template>
@@ -90,13 +92,62 @@
         <el-button type="primary" @click="submitProgress">确认</el-button>
       </template>
     </el-dialog>
+
+    <!-- 学习笔记弹窗 -->
+    <el-dialog v-model="noteDialogVisible" title="学习笔记" width="520px">
+      <el-form :model="noteForm" label-width="80px">
+        <el-form-item label="笔记内容">
+          <el-input
+            v-model="noteForm.note"
+            type="textarea"
+            :rows="6"
+            placeholder="记录你的学习心得、重点摘录或疑问..."
+            maxlength="2000"
+            show-word-limit
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="noteDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitNote">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 学习评价弹窗 -->
+    <el-dialog v-model="reviewDialogVisible" title="学习评价" width="420px">
+      <el-form :model="reviewForm" label-width="80px">
+        <el-form-item label="评分">
+          <el-rate v-model="reviewForm.rating" :max="5" show-score />
+        </el-form-item>
+        <el-form-item label="评价内容">
+          <el-input
+            v-model="reviewForm.comment"
+            type="textarea"
+            :rows="4"
+            placeholder="分享你的学习体验，帮助其他同学..."
+            maxlength="500"
+            show-word-limit
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="reviewDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitReview">提交</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { reactive, ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getMyLearningRecords, saveLearningRecord, deleteLearningRecord } from '@/api/learning'
+import {
+  getMyLearningRecords,
+  saveLearningRecord,
+  deleteLearningRecord,
+  updateLearningNote,
+  updateLearningReview
+} from '@/api/learning'
 
 // 默认占位图片
 const defaultImage = 'https://placehold.co/80x60/e4e7ed/909399?text=暂无封面'
@@ -211,6 +262,21 @@ const progressForm = reactive({
   lastPosition: 0
 })
 
+// 学习笔记弹窗
+const noteDialogVisible = ref(false)
+const noteForm = reactive({
+  id: null as number | null,
+  note: ''
+})
+
+// 学习评价弹窗
+const reviewDialogVisible = ref(false)
+const reviewForm = reactive({
+  id: null as number | null,
+  rating: 0,
+  comment: ''
+})
+
 /**
  * 打开更新进度弹窗
  */
@@ -244,6 +310,65 @@ async function submitProgress() {
     }
   } catch (error) {
     ElMessage.error('更新进度失败')
+    console.error(error)
+  }
+}
+
+/**
+ * 打开编辑笔记弹窗
+ */
+function handleEditNote(row: any) {
+  noteForm.id = row.id
+  noteForm.note = row.note || ''
+  noteDialogVisible.value = true
+}
+
+/**
+ * 提交学习笔记
+ */
+async function submitNote() {
+  if (!noteForm.id) return
+  try {
+    const res: any = await updateLearningNote(noteForm.id, noteForm.note)
+    if (res.code === 200) {
+      ElMessage.success('笔记保存成功')
+      noteDialogVisible.value = false
+      loadRecords()
+    } else {
+      ElMessage.error(res.message || '保存失败')
+    }
+  } catch (error) {
+    ElMessage.error('保存笔记失败')
+    console.error(error)
+  }
+}
+
+/**
+ * 打开编辑评价弹窗
+ */
+function handleEditReview(row: any) {
+  reviewForm.id = row.id
+  reviewForm.rating = row.rating || 0
+  reviewForm.comment = row.comment || ''
+  reviewDialogVisible.value = true
+}
+
+/**
+ * 提交学习评价
+ */
+async function submitReview() {
+  if (!reviewForm.id) return
+  try {
+    const res: any = await updateLearningReview(reviewForm.id, reviewForm.rating, reviewForm.comment)
+    if (res.code === 200) {
+      ElMessage.success('评价提交成功')
+      reviewDialogVisible.value = false
+      loadRecords()
+    } else {
+      ElMessage.error(res.message || '提交失败')
+    }
+  } catch (error) {
+    ElMessage.error('提交评价失败')
     console.error(error)
   }
 }
