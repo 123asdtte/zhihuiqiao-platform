@@ -27,6 +27,8 @@ logs/
 .env
 .env.local
 .env.*.local
+zhihuiqiao-backend/src/main/resources/application-local.yml
+zhihuiqiao-backend/src/main/resources/application-dev.yml
 
 # 临时文件
 *.tmp
