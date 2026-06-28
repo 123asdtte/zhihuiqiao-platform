@@ -14,4 +14,12 @@ public interface SysUserService extends IService<SysUser> {
     void register(RegisterRequest request);
 
     UserVO getCurrentUserInfo(Long userId);
+
+    /**
+     * 扣减用户信用分
+     * @param userId 用户ID
+     * @param score  扣减分数
+     * @return 是否成功
+     */
+    boolean deductCreditScore(Long userId, Integer score);
 }

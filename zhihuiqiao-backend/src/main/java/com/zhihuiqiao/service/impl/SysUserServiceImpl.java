@@ -17,6 +17,7 @@ import com.zhihuiqiao.vo.UserVO;
 import org.springframework.beans.BeanUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
 import java.util.List;
@@ -102,6 +103,19 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
             throw new BusinessException(ResultCode.USER_NOT_FOUND);
         }
         return convertToVO(user);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean deductCreditScore(Long userId, Integer score) {
+        SysUser user = getById(userId);
+        if (user == null) {
+            return false;
+        }
+        int currentScore = user.getCreditScore() == null ? 100 : user.getCreditScore();
+        int newScore = Math.max(0, currentScore - score);
+        user.setCreditScore(newScore);
+        return updateById(user);
     }
 
     private UserVO convertToVO(SysUser user) {
