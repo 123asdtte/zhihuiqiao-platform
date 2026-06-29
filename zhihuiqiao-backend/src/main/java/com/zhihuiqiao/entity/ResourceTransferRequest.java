@@ -79,4 +79,16 @@ public class ResourceTransferRequest {
      */
     @TableField(exist = false)
     private String sellerName;
+
+    /**
+     * 买家是否已评价（非数据库字段）
+     */
+    @TableField(exist = false)
+    private Boolean buyerReviewed;
+
+    /**
+     * 卖家是否已评价（非数据库字段）
+     */
+    @TableField(exist = false)
+    private Boolean sellerReviewed;
 }

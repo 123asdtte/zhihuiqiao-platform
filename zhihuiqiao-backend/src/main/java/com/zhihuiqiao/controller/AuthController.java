@@ -2,6 +2,9 @@ package com.zhihuiqiao.controller;
 
 import com.zhihuiqiao.annotation.OperationLogAnnotation;
 import com.zhihuiqiao.common.Result;
+import com.zhihuiqiao.dto.ChangeEmailRequest;
+import com.zhihuiqiao.dto.ChangePasswordRequest;
+import com.zhihuiqiao.dto.ChangePhoneRequest;
 import com.zhihuiqiao.dto.LoginRequest;
 import com.zhihuiqiao.dto.RegisterRequest;
 import com.zhihuiqiao.entity.SysUser;
@@ -73,5 +76,44 @@ public class AuthController {
         loginVO.setToken(newToken);
         loginVO.setUserInfo(sysUserService.getCurrentUserInfo(userId));
         return Result.success(loginVO);
+    }
+
+    /**
+     * 修改当前登录用户密码
+     */
+    @OperationLogAnnotation(module = "个人中心", operation = "修改密码")
+    @PostMapping("/change-password")
+    public Result<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            return Result.error("两次输入的新密码不一致");
+        }
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Long userId = (Long) authentication.getCredentials();
+        sysUserService.changePassword(userId, request.getOldPassword(), request.getNewPassword());
+        return Result.success();
+    }
+
+    /**
+     * 更换当前登录用户邮箱
+     */
+    @OperationLogAnnotation(module = "个人中心", operation = "更换邮箱")
+    @PostMapping("/change-email")
+    public Result<Void> changeEmail(@Valid @RequestBody ChangeEmailRequest request) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Long userId = (Long) authentication.getCredentials();
+        sysUserService.changeEmail(userId, request.getPassword(), request.getEmail());
+        return Result.success();
+    }
+
+    /**
+     * 更换当前登录用户手机号
+     */
+    @OperationLogAnnotation(module = "个人中心", operation = "更换手机")
+    @PostMapping("/change-phone")
+    public Result<Void> changePhone(@Valid @RequestBody ChangePhoneRequest request) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Long userId = (Long) authentication.getCredentials();
+        sysUserService.changePhone(userId, request.getPassword(), request.getPhone());
+        return Result.success();
     }
 }

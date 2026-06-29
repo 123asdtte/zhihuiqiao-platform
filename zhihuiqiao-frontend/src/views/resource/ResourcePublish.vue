@@ -29,6 +29,13 @@
           </el-select>
         </el-form-item>
 
+        <el-form-item label="交易模式" prop="tradeMode">
+          <el-radio-group v-model="form.tradeMode">
+            <el-radio-button label="borrow">借用</el-radio-button>
+            <el-radio-button label="transfer">转让</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+
         <el-form-item label="存放位置" prop="location">
           <el-input v-model="form.location" placeholder="请输入资源存放位置，如：计算机楼 302 室" clearable />
         </el-form-item>
@@ -47,15 +54,28 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="租赁价格" prop="rentalPrice">
+            <!-- 借用模式显示租赁价格 -->
+            <el-form-item v-if="form.tradeMode !== 'transfer'" label="租赁价格" prop="rentalPrice">
               <el-input-number
                 v-model="form.rentalPrice"
                 :min="0"
                 :precision="2"
                 :step="1"
                 style="width: 100%"
-                placeholder="0 表示免费"
+                placeholder="0 表示免费借用"
               />
+            </el-form-item>
+            <!-- 转让模式显示期望价格 -->
+            <el-form-item v-else label="期望价格" prop="expectPrice">
+              <el-input-number
+                v-model="form.expectPrice"
+                :min="0"
+                :precision="2"
+                :step="1"
+                style="width: 100%"
+                placeholder="0 表示免费转让"
+              />
+              <div class="form-tip">0 表示免费转让</div>
             </el-form-item>
           </el-col>
         </el-row>
@@ -74,6 +94,15 @@
             maxlength="1000"
             show-word-limit
           />
+        </el-form-item>
+
+        <el-form-item v-if="form.tradeMode === 'transfer'" label="联系方式" prop="contactInfo">
+          <el-input
+            v-model="form.contactInfo"
+            maxlength="255"
+            placeholder="微信/手机号/交易地点"
+          />
+          <div class="form-tip">买家确认意向后将可看到此联系方式，用于线下交割沟通</div>
         </el-form-item>
 
         <el-form-item label="借用规则" prop="borrowRules">
@@ -120,11 +149,14 @@ const submitting = ref(false)
 const form = reactive({
   resourceName: '',
   resourceType: '',
+  tradeMode: 'borrow',
   description: '',
   images: [] as string[],
   location: '',
   originalPrice: 0,
   rentalPrice: 0,
+  expectPrice: 0,
+  contactInfo: '',
   borrowRules: '',
   ownerId: 0
 })
@@ -165,7 +197,9 @@ async function handleSubmit() {
         ...form,
         ownerId: userStore.userInfo.id,
         originalPrice: form.originalPrice || 0,
-        rentalPrice: form.rentalPrice || 0,
+        rentalPrice: form.tradeMode !== 'transfer' ? (form.rentalPrice || 0) : 0,
+        expectPrice: form.tradeMode === 'transfer' ? (form.expectPrice || 0) : 0,
+        contactInfo: form.tradeMode === 'transfer' ? form.contactInfo : '',
         // 将图片数组转为逗号分隔字符串，适配数据库字段
         images: form.images && form.images.length > 0 ? form.images.join(',') : ''
       }

@@ -7,7 +7,7 @@ import request from '@/utils/request'
 
 /**
  * 查询资源列表
- * @param params 查询参数
+ * @param params 查询参数，支持交易模式与价格区间筛选
  */
 export function getResourceList(params: {
   pageNum?: number
@@ -15,6 +15,9 @@ export function getResourceList(params: {
   keyword?: string
   resourceType?: string
   status?: string
+  tradeMode?: string
+  minPrice?: number
+  maxPrice?: number
 }) {
   return request({
     // 后端 ResourceController 前缀为 /api/resource
@@ -201,6 +204,95 @@ export function getResourceCalendar(
 export function publishResource(data: Record<string, any>) {
   return request({
     url: '/api/resource/publish',
+    method: 'post',
+    data
+  })
+}
+
+/**
+ * 提交资源转让意向
+ * @param data 意向信息
+ */
+export function submitTransferRequest(data: {
+  resourceId: number | string
+  message?: string
+  contactInfo?: string
+}) {
+  return request({
+    url: '/api/resource/transfer/request',
+    method: 'post',
+    data
+  })
+}
+
+/**
+ * 查询我发出的转让意向
+ */
+export function getSentTransferRequests() {
+  return request({
+    url: '/api/resource/transfer/requests/sent',
+    method: 'get'
+  })
+}
+
+/**
+ * 查询我收到的转让意向
+ */
+export function getReceivedTransferRequests() {
+  return request({
+    url: '/api/resource/transfer/requests/received',
+    method: 'get'
+  })
+}
+
+/**
+ * 卖家确认转让成交
+ * @param id 意向ID
+ */
+export function acceptTransferRequest(id: number | string) {
+  return request({
+    url: `/api/resource/transfer/request/${id}/accept`,
+    method: 'put'
+  })
+}
+
+/**
+ * 卖家拒绝转让意向
+ * @param id 意向ID
+ */
+export function rejectTransferRequest(id: number | string) {
+  return request({
+    url: `/api/resource/transfer/request/${id}/reject`,
+    method: 'put'
+  })
+}
+
+/**
+ * 买家取消转让意向
+ * @param id 意向ID
+ */
+export function cancelTransferRequest(id: number | string) {
+  return request({
+    url: `/api/resource/transfer/request/${id}/cancel`,
+    method: 'put'
+  })
+}
+
+/**
+ * 交易评价
+ * @param id 意向ID
+ * @param data 评价信息
+ */
+export function reviewTransferRequest(
+  id: number | string,
+  data: {
+    targetUserId: number | string
+    rating: number
+    comment?: string
+  }
+) {
+  return request({
+    url: `/api/resource/transfer/request/${id}/review`,
     method: 'post',
     data
   })

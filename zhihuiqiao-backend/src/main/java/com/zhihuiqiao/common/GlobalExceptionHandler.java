@@ -41,6 +41,15 @@ public class GlobalExceptionHandler {
         return Result.error(ResultCode.PARAM_ERROR.getCode(), "请求参数格式错误，请检查URL或表单");
     }
 
+    /**
+     * 处理业务参数非法异常，避免直接暴露为系统繁忙
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public Result<Void> handleIllegalArgumentException(IllegalArgumentException e, HttpServletRequest request) {
+        log.warn("非法参数异常 [{}]: {}", request.getRequestURI(), e.getMessage());
+        return Result.error(ResultCode.PARAM_ERROR.getCode(), e.getMessage());
+    }
+
     @ExceptionHandler(Exception.class)
     public Result<Void> handleException(Exception e, HttpServletRequest request) {
         log.error("系统异常 [{}]: {}", request.getRequestURI(), e.getMessage(), e);

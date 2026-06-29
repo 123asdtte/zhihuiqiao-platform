@@ -54,15 +54,33 @@
                 <span class="value">{{ resource.location || '暂无' }}</span>
               </div>
               <div class="info-item">
+                <span class="label">交易模式：</span>
+                <span class="value">
+                  <el-tag v-if="resource.tradeMode === 'transfer'" type="warning">转让</el-tag>
+                  <el-tag v-else type="success">借用</el-tag>
+                </span>
+              </div>
+              <div v-if="resource.tradeMode === 'transfer'" class="info-item">
+                <span class="label">期望价格：</span>
+                <span class="value price">
+                  <span v-if="resource.expectPrice > 0">¥{{ resource.expectPrice }}</span>
+                  <span v-else class="free">免费转让</span>
+                </span>
+              </div>
+              <div v-else class="info-item">
                 <span class="label">租赁价格：</span>
                 <span class="value price">
                   <span v-if="resource.rentalPrice > 0">¥{{ resource.rentalPrice }}/天</span>
-                  <span v-else class="free">免费</span>
+                  <span v-else class="free">免费借用</span>
                 </span>
               </div>
               <div class="info-item">
                 <span class="label">原价：</span>
                 <span class="value">¥{{ resource.originalPrice || 0 }}</span>
+              </div>
+              <div v-if="resource.tradeMode === 'transfer' && resource.contactInfo" class="info-item">
+                <span class="label">联系方式：</span>
+                <span class="value">{{ resource.contactInfo }}</span>
               </div>
               <div class="info-item">
                 <span class="label">浏览量：</span>
@@ -81,13 +99,25 @@
             </div>
 
             <div v-if="!userStore.isEnterprise" class="action-buttons">
+              <!-- 借用模式：显示预约按钮 -->
               <el-button
+                v-if="resource.tradeMode !== 'transfer'"
                 type="primary"
                 size="large"
                 :disabled="resource.status !== 'available'"
                 @click="openBookingDialog"
               >
                 立即预约
+              </el-button>
+              <!-- 转让模式：显示我想要按钮 -->
+              <el-button
+                v-else
+                type="warning"
+                size="large"
+                :disabled="resource.status !== 'available' || isOwner"
+                @click="openTransferRequestDialog"
+              >
+                我想要
               </el-button>
             </div>
           </el-card>
@@ -159,7 +189,7 @@
             <el-button type="primary" size="small" @click="openCalendarDialog">查看日历</el-button>
           </div>
         </template>
-        <p class="calendar-hint">绿色表示可预约，红色表示已被占用。点击右上角按钮查看完整日历。</p>
+        <p class="calendar-hint">绿色表示可预约，蓝色表示我的预约，红色表示已被他人占用。点击右上角按钮查看完整日历。</p>
       </el-card>
     </div>
 
@@ -169,10 +199,18 @@
     <el-dialog v-model="calendarDialogVisible" title="资源可预约日历" width="700px">
       <el-calendar v-model="calendarMonth" @input="handleCalendarMonthChange">
         <template #date-cell="{ data }">
-          <div class="calendar-cell" :class="{ available: isDateAvailable(data.date), unavailable: !isDateAvailable(data.date) }">
+          <div
+            class="calendar-cell"
+            :class="{
+              available: isDateAvailable(data.date),
+              unavailable: isDateBookedByOthers(data.date),
+              'my-booking': isDateMyBooking(data.date) && !isDateBookedByOthers(data.date)
+            }"
+          >
             <span>{{ data.day.split('-').pop() }}</span>
-            <span v-if="isDateAvailable(data.date)" class="status-text">可约</span>
-            <span v-else class="status-text">已约</span>
+            <span v-if="isDateBookedByOthers(data.date)" class="status-text">已约</span>
+            <span v-else-if="isDateMyBooking(data.date)" class="status-text">我的</span>
+            <span v-else class="status-text">可约</span>
           </div>
         </template>
       </el-calendar>
@@ -188,6 +226,7 @@
             placeholder="选择开始时间"
             style="width: 100%"
             value-format="YYYY-MM-DD HH:mm:ss"
+            :disabled-date="disabledBookingDate"
           />
         </el-form-item>
         <el-form-item label="结束时间" required>
@@ -197,6 +236,7 @@
             placeholder="选择结束时间"
             style="width: 100%"
             value-format="YYYY-MM-DD HH:mm:ss"
+            :disabled-date="disabledBookingDate"
           />
         </el-form-item>
         <el-form-item label="用途说明" required>
@@ -211,6 +251,33 @@
       <template #footer>
         <el-button @click="bookingDialogVisible = false">取消</el-button>
         <el-button type="primary" @click="handleBookingSubmit">提交预约</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 转让意向弹窗 -->
+    <el-dialog v-model="requestDialogVisible" title="提交转让意向" width="500px">
+      <el-form :model="requestForm" label-width="80px">
+        <el-form-item label="留言" required>
+          <el-input
+            v-model="requestForm.message"
+            type="textarea"
+            :rows="3"
+            maxlength="500"
+            show-word-limit
+            placeholder="请简要说明您的意向"
+          />
+        </el-form-item>
+        <el-form-item label="联系方式">
+          <el-input
+            v-model="requestForm.contactInfo"
+            maxlength="255"
+            placeholder="微信/手机号/交易地点"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="requestDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleTransferRequestSubmit">提交意向</el-button>
       </template>
     </el-dialog>
   </div>
@@ -228,7 +295,8 @@ import {
   auditBooking,
   requestReturn,
   confirmReturn,
-  getResourceCalendar
+  getResourceCalendar,
+  submitTransferRequest
 } from '@/api/resource'
 import { useUserStore } from '@/stores/user'
 
@@ -255,7 +323,7 @@ const currentImage = ref('')
 
 // 是否为资源所有者
 const isOwner = computed(() => {
-  return userStore.userInfo?.id && resource.value?.ownerId === userStore.userInfo.id
+  return !!userStore.userInfo?.id && resource.value?.ownerId === userStore.userInfo.id
 })
 
 // 资源日历
@@ -273,6 +341,14 @@ const bookingForm = reactive({
   purpose: ''
 })
 
+// 转让意向弹窗
+const requestDialogVisible = ref(false)
+const requestForm = reactive({
+  resourceId: 0,
+  message: '',
+  contactInfo: ''
+})
+
 /**
  * 状态文本映射
  */
@@ -280,7 +356,8 @@ function statusText(status: string) {
   const map: Record<string, string> = {
     available: '可借用',
     rented: '已借出',
-    unavailable: '不可用'
+    unavailable: '不可用',
+    transferred: '已转让'
   }
   return map[status] || status
 }
@@ -292,7 +369,8 @@ function statusTagType(status: string) {
   const map: Record<string, any> = {
     available: 'success',
     rented: 'danger',
-    unavailable: 'info'
+    unavailable: 'info',
+    transferred: 'warning'
   }
   return map[status] || 'info'
 }
@@ -408,12 +486,39 @@ function handleCalendarMonthChange(date: Date) {
 }
 
 /**
+ * 禁用今天以前的日期（预约开始/结束时间均不可选）
+ */
+function disabledBookingDate(date: Date) {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return date.getTime() < today.getTime()
+}
+
+/**
  * 判断某日是否可预约
  */
 function isDateAvailable(date: Date) {
   const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
   const item = calendarDates.value.find((d: any) => d.date === dateStr)
   return item ? item.available : true
+}
+
+/**
+ * 判断某日是否被他人预约（用于日历标红）
+ */
+function isDateBookedByOthers(date: Date) {
+  const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+  const item = calendarDates.value.find((d: any) => d.date === dateStr)
+  return item ? item.hasOthersBooking : false
+}
+
+/**
+ * 判断某日是否为当前用户的预约
+ */
+function isDateMyBooking(date: Date) {
+  const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+  const item = calendarDates.value.find((d: any) => d.date === dateStr)
+  return item ? item.hasMyBooking : false
 }
 
 /**
@@ -455,6 +560,42 @@ async function handleBookingSubmit() {
     ElMessage.success('预约申请已提交，等待审批')
     bookingDialogVisible.value = false
     await loadBookings()
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+/**
+ * 打开转让意向弹窗
+ */
+function openTransferRequestDialog() {
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录')
+    router.push('/login')
+    return
+  }
+  requestForm.resourceId = resource.value?.id
+  requestForm.message = ''
+  requestForm.contactInfo = userStore.userInfo?.phone || userStore.userInfo?.email || ''
+  requestDialogVisible.value = true
+}
+
+/**
+ * 提交转让意向
+ */
+async function handleTransferRequestSubmit() {
+  if (!requestForm.message.trim()) {
+    ElMessage.warning('请填写留言')
+    return
+  }
+  try {
+    await submitTransferRequest({
+      resourceId: requestForm.resourceId,
+      message: requestForm.message,
+      contactInfo: requestForm.contactInfo
+    })
+    ElMessage.success('意向已提交，等待卖家确认')
+    requestDialogVisible.value = false
   } catch (error) {
     console.error(error)
   }
@@ -692,6 +833,11 @@ onMounted(() => {
   &.unavailable {
     color: #f56c6c;
     background-color: #fef0f0;
+  }
+
+  &.my-booking {
+    color: #409eff;
+    background-color: #ecf5ff;
   }
 }
 </style>

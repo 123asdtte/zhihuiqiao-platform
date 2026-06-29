@@ -51,3 +51,39 @@ export function updateCurrentUser(data: Record<string, any>) {
     data
   })
 }
+
+/**
+ * 修改当前登录用户密码
+ * @param data 密码参数
+ */
+export function changePassword(data: { oldPassword: string; newPassword: string; confirmPassword: string }) {
+  return request({
+    url: '/auth/change-password',
+    method: 'post',
+    data
+  })
+}
+
+/**
+ * 更换当前登录用户邮箱
+ * @param data 邮箱参数
+ */
+export function changeEmail(data: { password: string; email: string }) {
+  return request({
+    url: '/auth/change-email',
+    method: 'post',
+    data
+  })
+}
+
+/**
+ * 更换当前登录用户手机号
+ * @param data 手机号参数
+ */
+export function changePhone(data: { password: string; phone: string }) {
+  return request({
+    url: '/auth/change-phone',
+    method: 'post',
+    data
+  })
+}

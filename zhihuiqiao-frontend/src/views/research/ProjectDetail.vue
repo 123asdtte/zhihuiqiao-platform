@@ -315,46 +315,58 @@
     <el-drawer
       v-model="membersDrawerVisible"
       title="项目成员"
-      size="500px"
+      size="700px"
       destroy-on-close
+      class="members-drawer"
     >
       <el-table v-loading="membersLoading" :data="members" style="width: 100%">
-        <el-table-column prop="userName" label="成员" width="120" />
-        <el-table-column prop="role" label="角色" width="100">
+        <el-table-column prop="userName" label="成员" min-width="140">
+          <template #default="{ row }">
+            <span :class="{ 'deleted-user': !row.userName }">
+              {{ row.userName || '用户已删除' }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="role" label="角色" width="90">
           <template #default="{ row }">
             <el-tag :type="row.role === 'leader' ? 'primary' : 'info'">
               {{ row.role === 'leader' ? '负责人' : '成员' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="joinTime" label="加入时间" min-width="160" />
+        <el-table-column prop="joinTime" label="加入时间" width="180">
+          <template #default="{ row }">
+            {{ formatDateTime(row.joinTime) }}
+          </template>
+        </el-table-column>
         <el-table-column
           v-if="canViewApplications"
           label="操作"
-          width="180"
+          width="200"
           fixed="right"
         >
           <template #default="{ row }">
-            <el-select
-              v-if="row.userId !== project?.publisherId"
-              :model-value="row.role"
-              placeholder="设置角色"
-              size="small"
-              style="width: 90px; margin-right: 8px"
-              @change="(val: any) => handleUpdateMemberRole(row.userId, val)"
-            >
-              <el-option label="负责人" value="leader" />
-              <el-option label="成员" value="member" />
-            </el-select>
-            <el-button
-              v-if="row.userId !== project?.publisherId"
-              link
-              type="danger"
-              size="small"
-              @click="handleRemoveMember(row.userId, row.userName)"
-            >
-              移除
-            </el-button>
+            <template v-if="row.userId !== project?.publisherId">
+              <el-select
+                :model-value="row.role"
+                placeholder="设置角色"
+                size="small"
+                style="width: 90px; margin-right: 8px"
+                @change="(val: any) => handleUpdateMemberRole(row.userId, val)"
+              >
+                <el-option label="负责人" value="leader" />
+                <el-option label="成员" value="member" />
+              </el-select>
+              <el-button
+                link
+                type="danger"
+                size="small"
+                @click="handleRemoveMember(row.userId, row.userName)"
+              >
+                移除
+              </el-button>
+            </template>
+            <span v-else class="owner-tag">项目负责人</span>
           </template>
         </el-table-column>
       </el-table>
@@ -561,6 +573,14 @@ const applyRules = {
     { required: true, message: '请输入申请理由', trigger: 'blur' },
     { min: 10, max: 500, message: '申请理由长度在 10 到 500 个字符', trigger: 'blur' }
   ]
+}
+
+/**
+ * 格式化日期时间
+ */
+function formatDateTime(dateTime: string) {
+  if (!dateTime) return '-'
+  return new Date(dateTime).toLocaleString('zh-CN')
 }
 
 /**
@@ -1582,6 +1602,19 @@ onMounted(() => {
 
   .detail-sidebar {
     flex-direction: column;
+  }
+}
+
+// 成员抽屉样式
+.members-drawer {
+  .deleted-user {
+    color: var(--zh-text-tertiary);
+    font-style: italic;
+  }
+
+  .owner-tag {
+    color: var(--zh-text-tertiary);
+    font-size: 13px;
   }
 }
 </style>

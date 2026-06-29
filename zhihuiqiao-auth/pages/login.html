@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智汇桥 — 登录</title>
+    <style id="theme-vars">
+{"color":{"dark":{"surface-dim":{"hex":"#000b1a","opacity":"1"},"color-on-error":{"hex":"#1f0a0c","opacity":"1"},"color-sidebar":{"hex":"#1d2129","opacity":"1"},"color-secondary":{"hex":"#333333","opacity":"1"},"color-surface-container-high":{"hex":"#2a3440","opacity":"1"},"state-focus":{"hex":"#387bff","opacity":"0.24","isPrimary":true},"error-container":{"hex":"#ff706d","opacity":"0.16"},"success":{"hex":"#7ccd94","opacity":"1"},"foreground":{"hex":"#ffffff","opacity":"1"},"color-on-secondary-container":{"hex":"#ffffff","opacity":"1"}},"text-yuanliNeutral":{"text-yuanliNeutral-11":{"hex":"#000b1a","opacity":"1","isPrimary":true},"text-yuanliNeutral-10":{"hex":"#0c0d0e","opacity":"1"},"text-yuanliNeutral-9":{"hex":"#1d2129","opacity":"1"},"text-yuanliNeutral-8":{"hex":"#333333","opacity":"1"},"text-yuanliNeutral-7":{"hex":"#4e5969","opacity":"1"},"text-yuanliNeutral-5":{"hex":"#c9cdd4","opacity":"1"},"text-yuanliNeutral-4":{"hex":"#dde2e9","opacity":"1"},"text-yuanliNeutral-3":{"hex":"#eceded","opacity":"1"},"text-yuanliNeutral-2":{"hex":"#fcfdfe","opacity":"1"},"text-yuanliNeutral-1":{"hex":"#ffffff","opacity":"1"}},"primary-yuanliBlue":{"primary-yuanliBlue-7":{"hex":"#0055ff","opacity":"1","isPrimary":true},"primary-yuanliBlue-6":{"hex":"#1664ff","opacity":"1"},"primary-yuanliBlue-5":{"hex":"#387bff","opacity":"1"},"primary-yuanliBlue-3":{"hex":"#a0c0ff","opacity":"1"},"primary-yuanliBlue-4":{"hex":"#ccddff","opacity":"1"},"primary-yuanliBlue-2":{"hex":"#ebf1ff","opacity":"1"},"primary-yuanliBlue-1":{"hex":"#f3f7ff","opacity":"1"}},"status-yuanliDanger":{"status-yuanliDanger-7":{"hex":"#c43138","opacity":"1"},"status-yuanliDanger-6":{"hex":"#d7312a","opacity":"1"},"status-yuanliDanger-5":{"hex":"#f65159","opacity":"1","isPrimary":true},"status-yuanliDanger-3":{"hex":"#fa9ea3","opacity":"1"},"status-yuanliDanger-2":{"hex":"#feeced","opacity":"1"}},"status-yuanliSuccess":{"status-yuanliSuccess-6":{"hex":"#2a814b","opacity":"1"},"status-yuanliSuccess-7":{"hex":"#189959","opacity":"1"},"status-yuanliSuccess-5":{"hex":"#1ebf6f","opacity":"1","isPrimary":true},"status-yuanliSuccess-3":{"hex":"#8dd8b3","opacity":"1"},"status-yuanliSuccess-2":{"hex":"#e2f5eb","opacity":"1"}},"status-yuanliWarning":{"status-yuanliWarning-6":{"hex":"#bd7e00","opacity":"1"},"status-yuanliWarning-7":{"hex":"#de9400","opacity":"1","isPrimary":true},"status-yuanliWarning-5":{"hex":"#f5b433","opacity":"1"},"status-yuanliWarning-3":{"hex":"#f8d080","opacity":"1"},"status-yuanliWarning-2":{"hex":"#fdf3de","opacity":"1"}},"chart":{"chart-1":{"hex":"#387bff","opacity":"1","isPrimary":true},"chart-5":{"hex":"#86909c","opacity":"1"},"chart-4":{"hex":"#ff706d","opacity":"1"},"chart-3":{"hex":"#f0a50f","opacity":"1"},"chart-2":{"hex":"#7ccd94","opacity":"1"}},"border-yuanliBorder":{"border-yuanliBorder-4":{"hex":"#959da5","opacity":"1","isPrimary":true},"border-yuanliBorder-3":{"hex":"#d1d5da","opacity":"1"},"border-yuanliBorder-2":{"hex":"#e1e4e8","opacity":"1"},"border-yuanliBorder-1":{"hex":"#eaedf1","opacity":"1"}}},"font":{"family":{"font-display":"\"PingFang SC\", \"Microsoft YaHei\", \"Helvetica Neue\", Arial, sans-serif","font-heading":"\"PingFang SC\", \"Microsoft YaHei\", \"Helvetica Neue\", Arial, sans-serif","font-body":"\"PingFang SC\", \"Roboto\", \"Helvetica Neue\", Arial, sans-serif","font-mono":"\"SFMono-Regular\", \"SF Mono\", \"Roboto Mono\", \"Consolas\", \"Liberation Mono\", monospace","font-family-base":"\"PingFang SC\", \"Roboto\", \"Helvetica Neue\", Arial, sans-serif"},"size":{"font-size-display":"24px","font-size-h1":"20px","font-size-h2":"18px","font-size-h3":"16px","font-size-h4":"14px","font-size-body":"12px","font-size-lead":"13px","font-size-caption":"10px","font-size-eyebrow":"10px","font-size-mono":"12px","font-size-price":"20px","type-display-sm":"24px","type-heading-sm":"14px","type-body-md":"12px","type-body-sm":"10px"},"weight":{"font-weight-regular":"400","font-weight-medium":"500","font-weight-semibold":"600"},"lineHeight":{"line-height-display":"32px","line-height-h1":"28px","line-height-h2":"26px","line-height-h3":"24px","line-height-h4":"22px","line-height-body":"20px","line-height-lead":"22px","line-height-caption":"18px","line-height-eyebrow":"16px","line-height-mono":"20px","line-height-price":"28px"}},"shadow":{"shadow-1":{"xOffset":"0px","yOffset":"1px","blur":"2px","spread":"0px","color":{"hex":"#0c0d0e","opacity":"0.05"}},"shadow-2":{"xOffset":"0px","yOffset":"2px","blur":"6px","spread":"0px","color":{"hex":"#0c0d0e","opacity":"0.08"}},"shadow-3":{"layers":[{"xOffset":"0px","yOffset":"5px","blur":"15px","spread":"0px","color":{"hex":"#0c0d0e","opacity":"0.08"}},{"xOffset":"0px","yOffset":"2px","blur":"4px","spread":"0px","color":{"hex":"#0c0d0e","opacity":"0.04"}}]},"shadow-4":{"layers":[{"xOffset":"0px","yOffset":"15px","blur":"35px","spread":"-2px","color":{"hex":"#0c0d0e","opacity":"0.1"}},{"xOffset":"0px","yOffset":"5px","blur":"15px","spread":"0px","color":{"hex":"#0c0d0e","opacity":"0.06"}}]},"shadow-5":{"layers":[{"xOffset":"0px","yOffset":"24px","blur":"48px","spread":"-4px","color":{"hex":"#0c0d0e","opacity":"0.12"}},{"xOffset":"0px","yOffset":"8px","blur":"20px","spread":"0px","color":{"hex":"#0c0d0e","opacity":"0.08"}}]}},"radius":{"yuanlitest-radius-sm":"4px","radius-full":"9999px","radius-sm":"4px","radius-md":"8px","radius-lg":"12px","radius-xl":"16px"},"spacing":{"space-1":"4px","space-2":"8px","space-3":"12px","space-4":"16px","space-5":"20px","space-6":"24px","space-8":"32px","space-10":"40px","space-12":"48px","space-16":"64px"},"size":{"max-content":"1440px","max-prose":"72ch","gutter-desk":"24px","gutter-mob":"16px","nav-height":"56px","sidebar-width":"240px"}}
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-background: #0c0d0e;
+    --color-foreground: #ffffff;
+    --color-card: #1d2129;
+    --color-primary: #0055ff;
+    --color-muted: #1d2129;
+    --color-muted-foreground: #4e5969;
+    --color-accent: #387bff;
+    --color-border: #333333;
+  }
+  @layer base {
+    body { background: var(--color-background); color: var(--color-foreground); }
+    td, th { @apply break-words; word-break: break-all; word-break: auto-phrase; }
+    th { @apply whitespace-nowrap; }
+  }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+</head>
+<body class="min-h-screen font-sans antialiased">
+    <!-- ==================== 登录页面主体 ==================== -->
+    <!-- 分屏布局：左侧品牌展示（50%）+ 右侧登录表单（50%），暗色主题 -->
+    <main class="flex min-h-screen">
+
+      <!-- ========== 左侧品牌展示面板 ========== -->
+      <!-- 移动端隐藏，桌面端显示，全高背景图+品牌信息 -->
+      <section class="hidden md:flex md:w-1/2 relative flex-col items-center justify-center overflow-hidden"
+               style="background: url('../assets/auth-bg.jpg') center/cover no-repeat;">
+
+        <!-- 深色遮罩渐变，确保文字可读性 -->
+        <div class="absolute inset-0" style="background: linear-gradient(135deg, rgba(0,11,26,0.6) 0%, rgba(0,11,26,0.4) 100%);"></div>
+
+        <!-- 品牌内容区域，居中排列 -->
+        <div class="relative z-10 flex flex-col items-center px-8">
+
+          <!-- CSS Logo：48x48px 圆角方形，主色蓝底+白色"桥"字 -->
+          <div class="flex items-center justify-center rounded-lg shrink-0"
+               style="width: 48px; height: 48px; background-color: #0055ff;">
+            <span style="font-size: 24px; font-weight: 700; color: #ffffff; line-height: 1;">桥</span>
+          </div>
+
+          <!-- 品牌中文名 -->
+          <h1 class="mt-4 whitespace-nowrap"
+              style="font-size: 28px; font-weight: 700; color: #ffffff; letter-spacing: -0.02em;">
+            智汇桥
+          </h1>
+
+          <!-- 品牌英文名 -->
+          <p class="mt-1" style="font-size: 14px; color: #c9cdd4;">Zhihuiqiao</p>
+
+          <!-- 装饰分隔线：主色蓝，宽度40px -->
+          <div class="mt-5" style="width: 40px; height: 2px; background-color: #387bff;"></div>
+
+          <!-- 品牌标语 -->
+          <p class="mt-4 text-center leading-relaxed"
+             style="font-size: 14px; color: #c9cdd4; max-width: 300px; line-height: 1.6;">
+            AI 驱动的产学研用一体化智慧协同系统
+          </p>
+        </div>
+
+        <!-- 底部功能亮点区域，三个小图标+文字 -->
+        <div class="relative z-10 mt-16 flex flex-col gap-5 items-start" style="margin-left: 72px;">
+          <!-- 亮点1：智能撮合 -->
+          <div class="flex items-center gap-3">
+            <!-- 闪光图标（内联SVG） -->
+            <span class="flex items-center justify-center rounded-full shrink-0"
+                  style="width: 28px; height: 28px; border: 1px solid rgba(56,123,255,0.4); background-color: rgba(56,123,255,0.08);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#387bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5z"/>
+              </svg>
+            </span>
+            <span style="font-size: 13px; color: #c9cdd4;">智能撮合</span>
+          </div>
+
+          <!-- 亮点2：资源共享 -->
+          <div class="flex items-center gap-3">
+            <!-- 层叠图标（内联SVG） -->
+            <span class="flex items-center justify-center rounded-full shrink-0"
+                  style="width: 28px; height: 28px; border: 1px solid rgba(56,123,255,0.4); background-color: rgba(56,123,255,0.08);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#387bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+                <polyline points="2 17 12 22 22 17"/>
+                <polyline points="2 12 12 17 22 12"/>
+              </svg>
+            </span>
+            <span style="font-size: 13px; color: #c9cdd4;">资源共享</span>
+          </div>
+
+          <!-- 亮点3：个性教学 -->
+          <div class="flex items-center gap-3">
+            <!-- 书本图标（内联SVG） -->
+            <span class="flex items-center justify-center rounded-full shrink-0"
+                  style="width: 28px; height: 28px; border: 1px solid rgba(56,123,255,0.4); background-color: rgba(56,123,255,0.08);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#387bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+              </svg>
+            </span>
+            <span style="font-size: 13px; color: #c9cdd4;">个性教学</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== 右侧登录表单面板 ========== -->
+      <!-- 深色背景，内容垂直水平居中 -->
+      <section class="flex w-full md:w-1/2 items-center justify-center px-6 py-12"
+               style="background-color: #0c0d0e;">
+
+        <!-- 表单容器：最大宽度420px，内边距48px -->
+        <div class="w-full" style="max-width: 420px; padding: 48px;">
+
+          <!-- 移动端专属：小Logo + 品牌名（桌面端隐藏） -->
+          <div class="flex md:hidden flex-col items-center mb-8">
+            <div class="flex items-center justify-center rounded-lg shrink-0"
+                 style="width: 40px; height: 40px; background-color: #0055ff;">
+              <span style="font-size: 20px; font-weight: 700; color: #ffffff; line-height: 1;">桥</span>
+            </div>
+            <span class="mt-2" style="font-size: 18px; font-weight: 600; color: #ffffff;">智汇桥</span>
+          </div>
+
+          <!-- ===== 表单头部 ===== -->
+          <h2 style="font-size: 24px; font-weight: 700; color: #ffffff; word-break: keep-all; overflow-wrap: break-word; text-wrap: balance;">
+            欢迎回来
+          </h2>
+          <p class="mt-2" style="font-size: 14px; color: #4e5969;">登录您的智汇桥账号</p>
+
+          <!-- ===== Tab 切换器：账号登录 / 手机登录 ===== -->
+          <div class="flex mt-8 gap-6" style="border-bottom: 1px solid #333333;">
+            <!-- 账号登录Tab（当前激活） -->
+            <button data-dom-id="tab-account"
+                    class="pb-3 whitespace-nowrap transition-colors duration-150"
+                    style="font-size: 14px; font-weight: 500; color: #387bff; border-bottom: 2px solid #387bff; margin-bottom: -1px; background: transparent; border-top: none; border-left: none; border-right: none; cursor: pointer;"
+                    onmouseover="this.style.color='#1664ff'" onmouseout="if(!this.classList.contains('inactive'))this.style.color='#387bff'">
+              账号登录
+            </button>
+            <!-- 手机登录Tab（未激活） -->
+            <button data-dom-id="tab-phone"
+                    class="inactive pb-3 whitespace-nowrap transition-colors duration-150"
+                    style="font-size: 14px; font-weight: 500; color: #4e5969; border-bottom: 2px solid transparent; margin-bottom: -1px; background: transparent; border-top: none; border-left: none; border-right: none; cursor: pointer;"
+                    onmouseover="this.style.color='#c9cdd4'" onmouseout="if(this.classList.contains('inactive'))this.style.color='#4e5969'">
+              手机登录
+            </button>
+          </div>
+
+          <!-- ===== 登录表单 ===== -->
+          <form data-dom-id="login-form" class="flex flex-col mt-6" autocomplete="off">
+
+            <!-- 用户名输入框 -->
+            <div class="flex flex-col mt-5">
+              <label class="mb-2" style="font-size: 13px; color: #c9cdd4;">账号</label>
+              <div class="relative">
+                <!-- 用户图标 -->
+                <span class="absolute left-3 top-1/2 flex items-center justify-center"
+                      style="transform: translateY(-50%); color: #4e5969;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                </span>
+                <input type="text" name="username" placeholder="请输入用户名/邮箱"
+                       class="w-full outline-none transition-all duration-150"
+                       style="height: 44px; padding-left: 40px; padding-right: 16px; font-size: 14px; color: #ffffff; background-color: #1d2129; border: 1px solid #333333; border-radius: 8px;"
+                       onfocus="this.style.borderColor='#387bff'; this.style.boxShadow='0 0 0 3px rgba(56,123,255,0.24)'"
+                       onblur="this.style.borderColor='#333333'; this.style.boxShadow='none'"
+                       aria-label="用户名">
+              </div>
+            </div>
+
+            <!-- 密码输入框 -->
+            <div class="flex flex-col mt-5">
+              <label class="mb-2" style="font-size: 13px; color: #c9cdd4;">密码</label>
+              <div class="relative">
+                <!-- 锁图标 -->
+                <span class="absolute left-3 top-1/2 flex items-center justify-center"
+                      style="transform: translateY(-50%); color: #4e5969;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                </span>
+                <input type="password" name="password" placeholder="请输入密码"
+                       class="w-full outline-none transition-all duration-150"
+                       style="height: 44px; padding-left: 40px; padding-right: 44px; font-size: 14px; color: #ffffff; background-color: #1d2129; border: 1px solid #333333; border-radius: 8px;"
+                       onfocus="this.style.borderColor='#387bff'; this.style.boxShadow='0 0 0 3px rgba(56,123,255,0.24)'"
+                       onblur="this.style.borderColor='#333333'; this.style.boxShadow='none'"
+                       aria-label="密码">
+                <!-- 显示/隐藏密码切换按钮 -->
+                <button type="button" class="absolute right-3 top-1/2 flex items-center justify-center"
+                        style="transform: translateY(-50%); color: #4e5969; background: transparent; border: none; cursor: pointer; padding: 4px;"
+                        aria-label="显示密码"
+                        onclick="const inp=this.parentElement.querySelector('input'); if(inp.type==='password'){inp.type='text';this.innerHTML='<svg width=&quot;16&quot; height=&quot;16&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;><path d=&quot;M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94&quot;/><path d=&quot;M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19&quot;/><line x1=&quot;1&quot; y1=&quot;1&quot; x2=&quot;23&quot; y2=&quot;23&quot;/></svg>';this.setAttribute('aria-label','隐藏密码')}else{inp.type='password';this.innerHTML='<svg width=&quot;16&quot; height=&quot;16&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;><path d=&quot;M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z&quot;/><circle cx=&quot;12&quot; cy=&quot;12&quot; r=&quot;3&quot;/></svg>';this.setAttribute('aria-label','显示密码')}">
+                  <!-- 眼睛图标（默认：可见状态） -->
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- 记住我 + 忘记密码 -->
+            <div class="flex items-center justify-between mt-5">
+              <!-- 记住我：自定义复选框 -->
+              <label class="flex items-center gap-2 cursor-pointer" style="user-select: none;">
+                <span class="relative flex items-center justify-center shrink-0"
+                      style="width: 16px; height: 16px; border: 1px solid #333333; border-radius: 4px; background-color: #1d2129; transition: all 150ms;">
+                  <!-- 自定义选中勾选标记（通过CSS隐藏原生checkbox） -->
+                  <input type="checkbox" name="remember" class="absolute opacity-0" style="width: 16px; height: 16px; cursor: pointer;"
+                         onchange="const b=this.parentElement; if(this.checked){b.style.backgroundColor='#0055ff'; b.style.borderColor='#0055ff'; b.innerHTML='<svg width=&quot;10&quot; height=&quot;10&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;#ffffff&quot; stroke-width=&quot;4&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;><polyline points=&quot;20 6 9 17 4 12&quot;/></svg>'}else{b.style.backgroundColor='#1d2129'; b.style.borderColor='#333333'; b.innerHTML=''}">
+                </span>
+                <span style="font-size: 13px; color: #4e5969;">记住我</span>
+              </label>
+              <!-- 忘记密码链接 -->
+              <a href="#" class="transition-colors duration-150 whitespace-nowrap"
+                 style="font-size: 13px; color: #387bff; text-decoration: none;"
+                 onmouseover="this.style.color='#1664ff'" onmouseout="this.style.color='#387bff'">
+                忘记密码?
+              </a>
+            </div>
+
+            <!-- 登录按钮 -->
+            <button type="submit"
+                    class="w-full flex items-center justify-center mt-6 whitespace-nowrap transition-all duration-150"
+                    style="height: 44px; font-size: 14px; font-weight: 500; color: #ffffff; background-color: #0055ff; border: none; border-radius: 8px; cursor: pointer;"
+                    onmouseover="this.style.backgroundColor='#1664ff'" onmouseout="this.style.backgroundColor='#0055ff'"
+                    onmousedown="this.style.backgroundColor='#0055ff'" onmouseup="this.style.backgroundColor='#1664ff'">
+              登录
+            </button>
+
+            <!-- 分隔线：或 -->
+            <div class="flex items-center gap-3 mt-6">
+              <div class="flex-1" style="height: 1px; background-color: #333333;"></div>
+              <span style="font-size: 12px; color: #4e5969; white-space: nowrap;">或</span>
+              <div class="flex-1" style="height: 1px; background-color: #333333;"></div>
+            </div>
+
+            <!-- 其他登录方式 -->
+            <div class="flex flex-col items-center mt-5">
+              <span style="font-size: 13px; color: #4e5969;">其他登录方式</span>
+              <!-- 社交登录图标按钮行 -->
+              <div class="flex items-center gap-4 mt-4">
+                <!-- 微信图标按钮 -->
+                <button type="button" class="flex items-center justify-center transition-all duration-150"
+                        style="width: 40px; height: 40px; border-radius: 50%; background-color: #1d2129; border: 1px solid #333333; cursor: pointer;"
+                        aria-label="微信登录"
+                        onmouseover="this.style.backgroundColor='#2a3440'" onmouseout="this.style.backgroundColor='#1d2129'">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="#4e5969">
+                    <path d="M8.5 11a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm5 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM9 16.5a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5zm4.5 0a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5z"/>
+                    <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm-2 15c-2.21 0-4-1.343-4-3s1.79-3 4-3 4 1.343 4 3-1.79 3-4 3zm6 0c-1.105 0-2-.672-2-1.5s.895-1.5 2-1.5 2 .672 2 1.5-.895 1.5-2 1.5z"/>
+                  </svg>
+                </button>
+                <!-- 企业微信图标按钮 -->
+                <button type="button" class="flex items-center justify-center transition-all duration-150"
+                        style="width: 40px; height: 40px; border-radius: 50%; background-color: #1d2129; border: 1px solid #333333; cursor: pointer;"
+                        aria-label="企业微信登录"
+                        onmouseover="this.style.backgroundColor='#2a3440'" onmouseout="this.style.backgroundColor='#1d2129'">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4e5969" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/>
+                    <path d="M7 8l10 0"/>
+                    <path d="M7 12l10 0"/>
+                    <path d="M7 16l6 0"/>
+                  </svg>
+                </button>
+                <!-- GitHub图标按钮 -->
+                <button type="button" class="flex items-center justify-center transition-all duration-150"
+                        style="width: 40px; height: 40px; border-radius: 50%; background-color: #1d2129; border: 1px solid #333333; cursor: pointer;"
+                        aria-label="GitHub登录"
+                        onmouseover="this.style.backgroundColor='#2a3440'" onmouseout="this.style.backgroundColor='#1d2129'">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="#4e5969">
+                    <path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.604-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.463-1.11-1.463-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.268 2.75 1.026A9.578 9.578 0 0 1 12 6.836c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.026 2.747-1.026.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </form>
+
+          <!-- 底部注册引导 -->
+          <div class="flex items-center justify-center mt-8">
+            <span style="font-size: 14px; color: #4e5969;">还没有账号？</span>
+            <a href="#" id="goto-register" data-dom-id="goto-register"
+               class="ml-1 transition-colors duration-150 whitespace-nowrap"
+               style="font-size: 14px; color: #387bff; text-decoration: none;"
+               onmouseover="this.style.color='#1664ff'" onmouseout="this.style.color='#387bff'">
+              立即注册
+            </a>
+          </div>
+
+          <!-- 协议文本 -->
+          <p class="mt-4 text-center" style="font-size: 12px; color: #4e5969; opacity: 0.6;">
+            登录即表示同意《用户协议》和《隐私政策》
+          </p>
+
+        </div>
+      </section>
+    </main>
+    <script>lucide.createIcons();</script>
+</body>
+</html>

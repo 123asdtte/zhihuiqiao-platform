@@ -108,6 +108,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '我的预约', roles: ['student', 'teacher', 'admin'] }
       },
       {
+        path: 'resource/transfer-requests',
+        name: 'MyTransferRequests',
+        component: () => import('@/views/resource/MyTransferRequests.vue'),
+        meta: { title: '我的转让意向', roles: ['student', 'teacher', 'admin'] }
+      },
+      {
         path: 'learning/resources',
         name: 'LearningResources',
         component: () => import('@/views/learning/ResourceList.vue'),

@@ -118,6 +118,69 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         return updateById(user);
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void changePassword(Long userId, String oldPassword, String newPassword) {
+        SysUser user = getById(userId);
+        if (user == null) {
+            throw new BusinessException(ResultCode.USER_NOT_FOUND);
+        }
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            throw new BusinessException("旧密码错误");
+        }
+        if (oldPassword.equals(newPassword)) {
+            throw new BusinessException("新密码不能与旧密码相同");
+        }
+        user.setPassword(passwordEncoder.encode(newPassword));
+        updateById(user);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void changeEmail(Long userId, String password, String email) {
+        SysUser user = getById(userId);
+        if (user == null) {
+            throw new BusinessException(ResultCode.USER_NOT_FOUND);
+        }
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new BusinessException("登录密码错误");
+        }
+        if (email.equals(user.getEmail())) {
+            throw new BusinessException("新邮箱不能与当前邮箱相同");
+        }
+        LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SysUser::getEmail, email)
+                .ne(SysUser::getId, userId);
+        if (count(wrapper) > 0) {
+            throw new BusinessException("该邮箱已被其他用户绑定");
+        }
+        user.setEmail(email);
+        updateById(user);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void changePhone(Long userId, String password, String phone) {
+        SysUser user = getById(userId);
+        if (user == null) {
+            throw new BusinessException(ResultCode.USER_NOT_FOUND);
+        }
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new BusinessException("登录密码错误");
+        }
+        if (phone.equals(user.getPhone())) {
+            throw new BusinessException("新手机号不能与当前手机号相同");
+        }
+        LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SysUser::getPhone, phone)
+                .ne(SysUser::getId, userId);
+        if (count(wrapper) > 0) {
+            throw new BusinessException("该手机号已被其他用户绑定");
+        }
+        user.setPhone(phone);
+        updateById(user);
+    }
+
     private UserVO convertToVO(SysUser user) {
         UserVO vo = new UserVO();
         BeanUtils.copyProperties(user, vo);

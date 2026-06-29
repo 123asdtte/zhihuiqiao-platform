@@ -353,7 +353,7 @@
                   <div class="security-title">登录密码</div>
                   <div class="security-desc">定期修改密码可以更好地保护您的账户安全</div>
                 </div>
-                <el-button type="primary" plain @click="handleChangePassword">修改密码</el-button>
+                <el-button type="primary" plain @click="openSecurityDialog('password')">修改密码</el-button>
               </div>
               <div class="security-item">
                 <div class="security-icon">
@@ -363,7 +363,7 @@
                   <div class="security-title">邮箱绑定</div>
                   <div class="security-desc">当前邮箱：{{ userInfo.email || '未绑定' }}</div>
                 </div>
-                <el-button text type="primary">更换邮箱</el-button>
+                <el-button text type="primary" @click="openSecurityDialog('email')">更换邮箱</el-button>
               </div>
               <div class="security-item">
                 <div class="security-icon">
@@ -373,18 +373,112 @@
                   <div class="security-title">手机绑定</div>
                   <div class="security-desc">当前手机：{{ userInfo.phone || '未绑定' }}</div>
                 </div>
-                <el-button text type="primary">更换手机</el-button>
+                <el-button text type="primary" @click="openSecurityDialog('phone')">更换手机</el-button>
               </div>
             </div>
           </div>
         </div>
       </main>
     </div>
+
+    <!-- 安全设置弹窗：修改密码 / 更换邮箱 / 更换手机 -->
+    <el-dialog
+      v-model="securityDialogVisible"
+      :title="securityDialogTitle"
+      width="480px"
+      :close-on-click-modal="false"
+      destroy-on-close
+      @closed="resetSecurityForm"
+    >
+      <el-form
+        ref="securityFormRef"
+        :model="securityForm"
+        :rules="securityRules"
+        label-width="110px"
+        class="security-form"
+      >
+        <!-- 修改密码表单 -->
+        <template v-if="securityDialogType === 'password'">
+          <el-form-item label="旧密码" prop="oldPassword">
+            <el-input
+              v-model="securityForm.oldPassword"
+              type="password"
+              placeholder="请输入当前登录密码"
+              show-password
+            />
+          </el-form-item>
+          <el-form-item label="新密码" prop="newPassword">
+            <el-input
+              v-model="securityForm.newPassword"
+              type="password"
+              placeholder="请输入 6-32 位新密码"
+              show-password
+            />
+          </el-form-item>
+          <el-form-item label="确认新密码" prop="confirmPassword">
+            <el-input
+              v-model="securityForm.confirmPassword"
+              type="password"
+              placeholder="请再次输入新密码"
+              show-password
+            />
+          </el-form-item>
+        </template>
+
+        <!-- 更换邮箱表单 -->
+        <template v-if="securityDialogType === 'email'">
+          <el-form-item label="登录密码" prop="password">
+            <el-input
+              v-model="securityForm.password"
+              type="password"
+              placeholder="请输入当前登录密码"
+              show-password
+            />
+          </el-form-item>
+          <el-form-item label="新邮箱" prop="email">
+            <el-input
+              v-model="securityForm.email"
+              placeholder="请输入新邮箱地址"
+              maxlength="100"
+            />
+          </el-form-item>
+        </template>
+
+        <!-- 更换手机表单 -->
+        <template v-if="securityDialogType === 'phone'">
+          <el-form-item label="登录密码" prop="password">
+            <el-input
+              v-model="securityForm.password"
+              type="password"
+              placeholder="请输入当前登录密码"
+              show-password
+            />
+          </el-form-item>
+          <el-form-item label="新手机号" prop="phone">
+            <el-input
+              v-model="securityForm.phone"
+              placeholder="请输入新手机号"
+              maxlength="11"
+            />
+          </el-form-item>
+        </template>
+      </el-form>
+
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="securityDialogVisible = false">取消</el-button>
+          <el-button type="primary" :loading="securitySubmitting" @click="handleSecuritySubmit">
+            确认{{ securityDialogTitle }}
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, onMounted, computed } from 'vue'
+import { reactive, ref, onMounted, computed, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
   UserFilled,
@@ -403,7 +497,7 @@ import {
   Bell,
   Star
 } from '@element-plus/icons-vue'
-import { getCurrentUser, updateCurrentUser } from '@/api/auth'
+import { getCurrentUser, updateCurrentUser, changePassword, changeEmail, changePhone } from '@/api/auth'
 import { getResearcherProfile, saveResearcherProfile, getMyProjects, getJoinedProjects, getMyApplications } from '@/api/research'
 import { getMyBookings } from '@/api/resource'
 import { getMyLearningRecords } from '@/api/learning'
@@ -463,6 +557,70 @@ const profileRules = {
 }
 
 // 科研画像表单
+// 安全设置弹窗状态
+const securityDialogVisible = ref(false)
+const securityDialogType = ref<'password' | 'email' | 'phone'>('password')
+const securityDialogTitle = computed(() => {
+  const titles = {
+    password: '修改密码',
+    email: '更换邮箱',
+    phone: '更换手机'
+  }
+  return titles[securityDialogType.value]
+})
+const securitySubmitting = ref(false)
+const securityFormRef = ref<any>(null)
+const securityForm = reactive({
+  oldPassword: '',
+  newPassword: '',
+  confirmPassword: '',
+  password: '',
+  email: '',
+  phone: ''
+})
+
+const validateConfirmPassword = (_rule: any, value: string, callback: Function) => {
+  if (value !== securityForm.newPassword) {
+    callback(new Error('两次输入的密码不一致'))
+  } else {
+    callback()
+  }
+}
+
+const passwordRules = {
+  oldPassword: [{ required: true, message: '请输入旧密码', trigger: 'blur' }],
+  newPassword: [
+    { required: true, message: '请输入新密码', trigger: 'blur' },
+    { min: 6, max: 32, message: '密码长度应在 6-32 位之间', trigger: 'blur' }
+  ],
+  confirmPassword: [
+    { required: true, message: '请再次输入新密码', trigger: 'blur' },
+    { validator: validateConfirmPassword, trigger: 'blur' }
+  ]
+}
+
+const emailRules = {
+  password: [{ required: true, message: '请输入登录密码', trigger: 'blur' }],
+  email: [
+    { required: true, message: '请输入新邮箱', trigger: 'blur' },
+    { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' }
+  ]
+}
+
+const phoneRules = {
+  password: [{ required: true, message: '请输入登录密码', trigger: 'blur' }],
+  phone: [
+    { required: true, message: '请输入新手机号', trigger: 'blur' },
+    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号格式', trigger: 'blur' }
+  ]
+}
+
+const securityRules = computed(() => {
+  if (securityDialogType.value === 'password') return passwordRules
+  if (securityDialogType.value === 'email') return emailRules
+  return phoneRules
+})
+
 const researchFormRef = ref<any>(null)
 const researchSubmitting = ref(false)
 const researchForm = reactive({
@@ -593,8 +751,64 @@ async function handleSave() {
   }
 }
 
-function handleChangePassword() {
-  ElMessage.info('修改密码功能正在开发中，敬请期待')
+function openSecurityDialog(type: 'password' | 'email' | 'phone') {
+  securityDialogType.value = type
+  securityDialogVisible.value = true
+  resetSecurityForm()
+  nextTick(() => {
+    securityFormRef.value?.clearValidate?.()
+  })
+}
+
+function resetSecurityForm() {
+  securityForm.oldPassword = ''
+  securityForm.newPassword = ''
+  securityForm.confirmPassword = ''
+  securityForm.password = ''
+  securityForm.email = ''
+  securityForm.phone = ''
+}
+
+async function handleSecuritySubmit() {
+  if (!securityFormRef.value) return
+
+  const valid = await securityFormRef.value.validate().catch(() => false)
+  if (!valid) return
+
+  securitySubmitting.value = true
+  try {
+    let res: any
+    if (securityDialogType.value === 'password') {
+      res = await changePassword({
+        oldPassword: securityForm.oldPassword,
+        newPassword: securityForm.newPassword,
+        confirmPassword: securityForm.confirmPassword
+      })
+    } else if (securityDialogType.value === 'email') {
+      res = await changeEmail({
+        password: securityForm.password,
+        email: securityForm.email
+      })
+    } else {
+      res = await changePhone({
+        password: securityForm.password,
+        phone: securityForm.phone
+      })
+    }
+
+    if (res.code === 200) {
+      ElMessage.success(`${securityDialogTitle.value}成功`)
+      securityDialogVisible.value = false
+      await loadUserInfo()
+    } else {
+      ElMessage.error(res.message || `${securityDialogTitle.value}失败`)
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.response?.data?.message || `${securityDialogTitle.value}失败`)
+    console.error(error)
+  } finally {
+    securitySubmitting.value = false
+  }
 }
 
 // ==================== 科研画像加载与保存 ====================

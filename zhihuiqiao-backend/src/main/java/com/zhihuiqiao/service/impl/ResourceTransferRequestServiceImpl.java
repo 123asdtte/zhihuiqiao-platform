@@ -179,9 +179,15 @@ public class ResourceTransferRequestServiceImpl extends ServiceImpl<ResourceTran
 
         boolean isSeller = request.getSellerId().equals(fromUserId);
         if (isSeller) {
+            if (transferLog.getFromUserRating() != null) {
+                throw new IllegalArgumentException("您已评价过该交易");
+            }
             transferLog.setFromUserRating(rating);
             transferLog.setFromUserComment(comment);
         } else {
+            if (transferLog.getToUserRating() != null) {
+                throw new IllegalArgumentException("您已评价过该交易");
+            }
             transferLog.setToUserRating(rating);
             transferLog.setToUserComment(comment);
         }
@@ -207,6 +213,18 @@ public class ResourceTransferRequestServiceImpl extends ServiceImpl<ResourceTran
             SysUser seller = sysUserService.getById(item.getSellerId());
             if (seller != null) {
                 item.setSellerName(seller.getUsername());
+            }
+
+            // 查询成交记录的评价状态，用于前端控制评价按钮
+            ResourceTransferLog transferLog = resourceTransferLogService.lambdaQuery()
+                    .eq(ResourceTransferLog::getResourceId, item.getResourceId())
+                    .eq(ResourceTransferLog::getTransferType, "transfer")
+                    .eq(ResourceTransferLog::getFromUserId, item.getSellerId())
+                    .eq(ResourceTransferLog::getToUserId, item.getBuyerId())
+                    .one();
+            if (transferLog != null) {
+                item.setBuyerReviewed(transferLog.getToUserRating() != null);
+                item.setSellerReviewed(transferLog.getFromUserRating() != null);
             }
         });
         return list;

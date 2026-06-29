@@ -22,4 +22,28 @@ public interface SysUserService extends IService<SysUser> {
      * @return 是否成功
      */
     boolean deductCreditScore(Long userId, Integer score);
+
+    /**
+     * 修改当前用户密码
+     * @param userId      用户ID
+     * @param oldPassword 旧密码
+     * @param newPassword 新密码
+     */
+    void changePassword(Long userId, String oldPassword, String newPassword);
+
+    /**
+     * 更换当前用户邮箱
+     * @param userId   用户ID
+     * @param password 登录密码
+     * @param email    新邮箱
+     */
+    void changeEmail(Long userId, String password, String email);
+
+    /**
+     * 更换当前用户手机号
+     * @param userId   用户ID
+     * @param password 登录密码
+     * @param phone    新手机号
+     */
+    void changePhone(Long userId, String password, String phone);
 }

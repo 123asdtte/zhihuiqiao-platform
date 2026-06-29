@@ -1,0 +1,85 @@
+{
+  "data": [
+    {
+      "id": "page-login",
+      "title": "智汇桥 — 登录",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1782702600000,
+      "canvasData": {
+        "x": 828,
+        "y": 72,
+        "group": 0
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/login.html",
+        "interactions": [
+          {
+            "domId": "login-form",
+            "targetPageId": "page-register"
+          },
+          {
+            "domId": "goto-register",
+            "targetPageId": "page-register"
+          }
+        ]
+      }
+    },
+    {
+      "id": "page-register",
+      "title": "智汇桥 — 注册",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1782702700000,
+      "canvasData": {
+        "x": 72,
+        "y": 96,
+        "group": 0
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/register.html",
+        "interactions": [
+          {
+            "domId": "register-form",
+            "targetPageId": "page-login"
+          },
+          {
+            "domId": "goto-login",
+            "targetPageId": "page-login"
+          }
+        ]
+      }
+    },
+    {
+      "id": "image-001",
+      "title": "登录页背景",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1782702800000,
+      "canvasData": {
+        "x": 84,
+        "y": 432
+      },
+      "devMetadata": {
+        "imageSrc": "assets/auth-bg.jpg"
+      }
+    }
+  ],
+  "config": {
+    "autoLayout": false,
+    "deviceType": "desktop",
+    "projectName": "智汇桥登录注册",
+    "designLibrary": {
+      "name": "源力",
+      "id": "dl_builtin_volcengine",
+      "version": null,
+      "scope": "built-in-global",
+      "path": "c:\\Users\\luofeng\\.trae-cn\\design_libraries\\dl_builtin_volcengine",
+      "versionSource": "metadata.json"
+    },
+    "windowSize": {
+      "width": 800,
+      "height": 600
+    }
+  }
+}

@@ -8,6 +8,7 @@ import com.zhihuiqiao.entity.IdleResource;
 import com.zhihuiqiao.entity.ResourceBooking;
 import com.zhihuiqiao.entity.ResourceDamageRecord;
 import com.zhihuiqiao.entity.ResourceTransferLog;
+import com.zhihuiqiao.entity.ResourceTransferRequest;
 import com.zhihuiqiao.entity.SysUser;
 import com.zhihuiqiao.entity.UserPenaltyRecord;
 import com.zhihuiqiao.service.IdleResourceService;
@@ -15,17 +16,24 @@ import com.zhihuiqiao.service.NotificationService;
 import com.zhihuiqiao.service.ResourceBookingService;
 import com.zhihuiqiao.service.ResourceDamageRecordService;
 import com.zhihuiqiao.service.ResourceTransferLogService;
+import com.zhihuiqiao.service.ResourceTransferRequestService;
 import com.zhihuiqiao.service.SysUserService;
 import com.zhihuiqiao.service.UserPenaltyRecordService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -46,6 +54,7 @@ public class ResourceController {
     private final UserPenaltyRecordService userPenaltyRecordService;
     private final SysUserService sysUserService;
     private final NotificationService notificationService;
+    private final ResourceTransferRequestService transferRequestService;
 
     /**
      * 获取当前登录用户ID
@@ -103,7 +112,10 @@ public class ResourceController {
             @RequestParam(defaultValue = "10") Integer pageSize,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String resourceType,
-            @RequestParam(required = false) String status) {
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String tradeMode,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice) {
 
         Page<IdleResource> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<IdleResource> wrapper = new LambdaQueryWrapper<>();
@@ -117,6 +129,15 @@ public class ResourceController {
         } else {
             // 默认只查询已审核通过的可预约/已租出资源，待审核内容不在列表展示
             wrapper.in(IdleResource::getStatus, List.of("available", "rented", "booked"));
+        }
+        if (StringUtils.hasText(tradeMode)) {
+            wrapper.eq(IdleResource::getTradeMode, tradeMode);
+        }
+        if (minPrice != null) {
+            wrapper.ge(IdleResource::getExpectPrice, minPrice);
+        }
+        if (maxPrice != null) {
+            wrapper.le(IdleResource::getExpectPrice, maxPrice);
         }
         if (StringUtils.hasText(keyword)) {
             wrapper.and(w -> w.like(IdleResource::getResourceName, keyword)
@@ -184,6 +205,16 @@ public class ResourceController {
             return Result.error("当前资源不可预约");
         }
 
+        // 校验开始时间不能早于当前时间（禁止预约今天以前的时间）
+        if (booking.getStartTime() == null || booking.getStartTime().isBefore(LocalDateTime.now())) {
+            return Result.error("开始时间不能早于当前时间，请选择今天及以后的时间");
+        }
+
+        // 校验结束时间必须晚于开始时间
+        if (booking.getEndTime() == null || !booking.getEndTime().isAfter(booking.getStartTime())) {
+            return Result.error("结束时间必须晚于开始时间");
+        }
+
         // 校验时间是否冲突
         List<ResourceBooking> conflicts = resourceBookingService.findConflictBookings(
                 booking.getResourceId(), booking.getStartTime(), booking.getEndTime());
@@ -212,21 +243,30 @@ public class ResourceController {
     @Operation(summary = "查询资源的预约列表")
     @GetMapping("/{resourceId}/bookings")
     public Result<List<ResourceBooking>> listBookingsByResource(@PathVariable Long resourceId) {
-        // 校验当前用户是否为资源所有者或管理员，防止越权查看他人资源的预约
         IdleResource resource = idleResourceService.getById(resourceId);
         if (resource == null) {
             return Result.success(List.of());
         }
+
         Long currentUserId = getCurrentUserId();
         String currentRole = getCurrentRoleType();
-        if (!"admin".equals(currentRole) && !resource.getOwnerId().equals(currentUserId)) {
-            return Result.error("无权查看该资源的预约列表");
+        if (currentUserId == null) {
+            return Result.error("请先登录");
         }
 
         LambdaQueryWrapper<ResourceBooking> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(ResourceBooking::getResourceId, resourceId)
-                .orderByDesc(ResourceBooking::getCreateTime);
-        return Result.success(resourceBookingService.list(wrapper));
+        wrapper.eq(ResourceBooking::getResourceId, resourceId);
+
+        // 管理员或资源所有者：查看该资源全部预约
+        // 普通借用人：只能查看自己的预约
+        if (!"admin".equals(currentRole) && !resource.getOwnerId().equals(currentUserId)) {
+            wrapper.eq(ResourceBooking::getBorrowerId, currentUserId);
+        }
+
+        wrapper.orderByDesc(ResourceBooking::getCreateTime);
+        List<ResourceBooking> bookings = resourceBookingService.list(wrapper);
+        enrichBookings(bookings);
+        return Result.success(bookings);
     }
 
     @Operation(summary = "查询我的预约列表（管理员可查看全部预约）")
@@ -714,6 +754,7 @@ public class ResourceController {
         java.time.LocalDate start = java.time.LocalDate.parse(startDate);
         java.time.LocalDate end = java.time.LocalDate.parse(endDate);
 
+        // 查询审批通过及进行中的预约
         LambdaQueryWrapper<ResourceBooking> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ResourceBooking::getResourceId, resourceId)
                 .in(ResourceBooking::getStatus, List.of("approved", "ongoing", "return_request"))
@@ -721,18 +762,34 @@ public class ResourceController {
                 .le(ResourceBooking::getEndTime, end.plusDays(1).atStartOfDay());
         List<ResourceBooking> bookings = resourceBookingService.list(wrapper);
 
+        Long currentUserId = getCurrentUserId();
+
         List<java.util.Map<String, Object>> calendar = new java.util.ArrayList<>();
         for (java.time.LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
             java.time.LocalDateTime dayStart = date.atStartOfDay();
             java.time.LocalDateTime dayEnd = date.plusDays(1).atStartOfDay();
 
-            boolean booked = bookings.stream().anyMatch(b ->
-                    b.getStartTime() != null && b.getEndTime() != null
-                            && b.getStartTime().isBefore(dayEnd) && b.getEndTime().isAfter(dayStart));
+            boolean hasMyBooking = false;
+            boolean hasOthersBooking = false;
+
+            for (ResourceBooking b : bookings) {
+                if (b.getStartTime() == null || b.getEndTime() == null) {
+                    continue;
+                }
+                if (b.getStartTime().isBefore(dayEnd) && b.getEndTime().isAfter(dayStart)) {
+                    if (currentUserId != null && currentUserId.equals(b.getBorrowerId())) {
+                        hasMyBooking = true;
+                    } else {
+                        hasOthersBooking = true;
+                    }
+                }
+            }
 
             java.util.Map<String, Object> item = new java.util.HashMap<>();
             item.put("date", date.toString());
-            item.put("available", !booked);
+            item.put("available", !hasMyBooking && !hasOthersBooking);
+            item.put("hasMyBooking", hasMyBooking);
+            item.put("hasOthersBooking", hasOthersBooking);
             calendar.add(item);
         }
 
@@ -759,5 +816,152 @@ public class ResourceController {
         wrapper.eq(ResourceTransferLog::getResourceId, resourceId)
                 .orderByDesc(ResourceTransferLog::getCreateTime);
         return Result.success(resourceTransferLogService.list(wrapper));
+    }
+
+    // ==================== 资源转让意向 ====================
+
+    @OperationLogAnnotation(module = "资源流转", operation = "提交转让意向")
+    @Operation(summary = "提交转让意向")
+    @PostMapping("/transfer/request")
+    public Result<Long> submitTransferRequest(@RequestBody @Valid TransferRequestDTO dto) {
+        Long buyerId = getCurrentUserId();
+        if (buyerId == null) {
+            return Result.error("用户未登录");
+        }
+        Long requestId = transferRequestService.submitRequest(buyerId, dto.getResourceId(), dto.getMessage(), dto.getContactInfo());
+
+        // 通知卖家有新的转让意向
+        IdleResource resource = idleResourceService.getById(dto.getResourceId());
+        if (resource != null) {
+            notificationService.sendNotification(
+                    resource.getOwnerId(),
+                    "新的资源转让意向",
+                    "您的资源「" + resource.getResourceName() + "」收到了新的转让意向，请查看。",
+                    "resource",
+                    requestId,
+                    "resource_transfer_request"
+            );
+        }
+
+        return Result.success(requestId);
+    }
+
+    @Operation(summary = "我发出的转让意向")
+    @GetMapping("/transfer/requests/sent")
+    public Result<List<ResourceTransferRequest>> listSentTransferRequests() {
+        Long buyerId = getCurrentUserId();
+        if (buyerId == null) {
+            return Result.error("用户未登录");
+        }
+        return Result.success(transferRequestService.listSentRequests(buyerId));
+    }
+
+    @Operation(summary = "我收到的转让意向")
+    @GetMapping("/transfer/requests/received")
+    public Result<List<ResourceTransferRequest>> listReceivedTransferRequests() {
+        Long sellerId = getCurrentUserId();
+        if (sellerId == null) {
+            return Result.error("用户未登录");
+        }
+        return Result.success(transferRequestService.listReceivedRequests(sellerId));
+    }
+
+    @OperationLogAnnotation(module = "资源流转", operation = "确认转让成交")
+    @Operation(summary = "卖家确认转让成交")
+    @PutMapping("/transfer/request/{id}/accept")
+    public Result<Boolean> acceptTransferRequest(@PathVariable Long id) {
+        Long sellerId = getCurrentUserId();
+        if (sellerId == null) {
+            return Result.error("用户未登录");
+        }
+        boolean result = transferRequestService.acceptRequest(id, sellerId);
+
+        // 通知买家意向已确认
+        ResourceTransferRequest request = transferRequestService.getById(id);
+        IdleResource resource = request != null ? idleResourceService.getById(request.getResourceId()) : null;
+        if (request != null && resource != null) {
+            notificationService.sendNotification(
+                    request.getBuyerId(),
+                    "资源转让意向已确认",
+                    "您对资源「" + resource.getResourceName() + "」的转让意向已被卖家确认，请线下交割。",
+                    "resource",
+                    id,
+                    "resource_transfer_request"
+            );
+        }
+
+        return Result.success(result);
+    }
+
+    @OperationLogAnnotation(module = "资源流转", operation = "拒绝转让意向")
+    @Operation(summary = "卖家拒绝转让意向")
+    @PutMapping("/transfer/request/{id}/reject")
+    public Result<Boolean> rejectTransferRequest(@PathVariable Long id) {
+        Long sellerId = getCurrentUserId();
+        if (sellerId == null) {
+            return Result.error("用户未登录");
+        }
+        boolean result = transferRequestService.rejectRequest(id, sellerId);
+
+        // 通知买家意向被拒绝
+        ResourceTransferRequest request = transferRequestService.getById(id);
+        IdleResource resource = request != null ? idleResourceService.getById(request.getResourceId()) : null;
+        if (request != null && resource != null) {
+            notificationService.sendNotification(
+                    request.getBuyerId(),
+                    "资源转让意向被拒绝",
+                    "您对资源「" + resource.getResourceName() + "」的转让意向已被卖家拒绝。",
+                    "resource",
+                    id,
+                    "resource_transfer_request"
+            );
+        }
+
+        return Result.success(result);
+    }
+
+    @OperationLogAnnotation(module = "资源流转", operation = "取消转让意向")
+    @Operation(summary = "买家取消转让意向")
+    @PutMapping("/transfer/request/{id}/cancel")
+    public Result<Boolean> cancelTransferRequest(@PathVariable Long id) {
+        Long buyerId = getCurrentUserId();
+        if (buyerId == null) {
+            return Result.error("用户未登录");
+        }
+        return Result.success(transferRequestService.cancelRequest(id, buyerId));
+    }
+
+    @OperationLogAnnotation(module = "资源流转", operation = "交易评价")
+    @Operation(summary = "交易评价")
+    @PostMapping("/transfer/request/{id}/review")
+    public Result<Boolean> reviewTransferRequest(@PathVariable Long id,
+                                                 @RequestBody @Valid TransferReviewDTO dto) {
+        Long fromUserId = getCurrentUserId();
+        if (fromUserId == null) {
+            return Result.error("用户未登录");
+        }
+        return Result.success(transferRequestService.review(id, fromUserId, dto.getTargetUserId(), dto.getRating(), dto.getComment()));
+    }
+
+    @Data
+    public static class TransferRequestDTO {
+        @NotNull(message = "资源ID不能为空")
+        private Long resourceId;
+        @Size(max = 500, message = "留言不超过500字")
+        private String message;
+        @Size(max = 255, message = "联系方式不超过255字")
+        private String contactInfo;
+    }
+
+    @Data
+    public static class TransferReviewDTO {
+        @NotNull(message = "评价对象不能为空")
+        private Long targetUserId;
+        @NotNull(message = "评分不能为空")
+        @Min(value = 1, message = "评分最低1分")
+        @Max(value = 5, message = "评分最高5分")
+        private Integer rating;
+        @Size(max = 500, message = "评价内容不超过500字")
+        private String comment;
     }
 }
