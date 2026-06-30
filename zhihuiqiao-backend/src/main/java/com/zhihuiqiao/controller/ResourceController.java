@@ -148,6 +148,30 @@ public class ResourceController {
         return Result.success(idleResourceService.page(page, wrapper));
     }
 
+    /**
+     * 查询当前登录用户发布的资源列表（包含待审核等全部状态）
+     */
+    @Operation(summary = "查询我的资源列表")
+    @GetMapping("/my-list")
+    public Result<Page<IdleResource>> listMyResources(
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize,
+            @RequestParam(required = false) String status) {
+        Long currentUserId = getCurrentUserId();
+        if (currentUserId == null) {
+            return Result.error("用户未登录");
+        }
+
+        Page<IdleResource> page = new Page<>(pageNum, pageSize);
+        LambdaQueryWrapper<IdleResource> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(IdleResource::getOwnerId, currentUserId);
+        if (StringUtils.hasText(status)) {
+            wrapper.eq(IdleResource::getStatus, status);
+        }
+        wrapper.orderByDesc(IdleResource::getCreateTime);
+        return Result.success(idleResourceService.page(page, wrapper));
+    }
+
     @Operation(summary = "查询资源详情")
     @GetMapping("/{id}")
     public Result<IdleResource> getResourceById(@PathVariable Long id) {

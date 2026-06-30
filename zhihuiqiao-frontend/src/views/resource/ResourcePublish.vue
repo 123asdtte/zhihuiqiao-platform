@@ -43,37 +43,40 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="原价" prop="originalPrice">
-              <el-input-number
+              <el-input
                 v-model="form.originalPrice"
-                :min="0"
-                :precision="2"
-                :step="10"
+                type="number"
+                min="0"
+                step="0.01"
                 style="width: 100%"
                 placeholder="请输入原价"
+                clearable
               />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <!-- 借用模式显示租赁价格 -->
             <el-form-item v-if="form.tradeMode !== 'transfer'" label="租赁价格" prop="rentalPrice">
-              <el-input-number
+              <el-input
                 v-model="form.rentalPrice"
-                :min="0"
-                :precision="2"
-                :step="1"
+                type="number"
+                min="0"
+                step="0.01"
                 style="width: 100%"
                 placeholder="0 表示免费借用"
+                clearable
               />
             </el-form-item>
             <!-- 转让模式显示期望价格 -->
             <el-form-item v-else label="期望价格" prop="expectPrice">
-              <el-input-number
+              <el-input
                 v-model="form.expectPrice"
-                :min="0"
-                :precision="2"
-                :step="1"
+                type="number"
+                min="0"
+                step="0.01"
                 style="width: 100%"
                 placeholder="0 表示免费转让"
+                clearable
               />
               <div class="form-tip">0 表示免费转让</div>
             </el-form-item>
@@ -146,6 +149,7 @@ const formRef = ref<FormInstance>()
 const submitting = ref(false)
 
 // 表单数据
+// 价格字段默认置空，避免页面加载时显示 0 导致用户误以为是已填写值
 const form = reactive({
   resourceName: '',
   resourceType: '',
@@ -153,9 +157,9 @@ const form = reactive({
   description: '',
   images: [] as string[],
   location: '',
-  originalPrice: 0,
-  rentalPrice: 0,
-  expectPrice: 0,
+  originalPrice: undefined as any,
+  rentalPrice: undefined as any,
+  expectPrice: undefined as any,
   contactInfo: '',
   borrowRules: '',
   ownerId: 0
@@ -175,6 +179,56 @@ const rules: FormRules = {
   ],
   description: [
     { required: true, message: '请输入资源描述', trigger: 'blur' }
+  ],
+  // 转让模式必须填写联系方式，否则买家无法线下沟通
+  contactInfo: [
+    {
+      validator: (_rule: any, value: string, callback: Function) => {
+        if (form.tradeMode === 'transfer' && !value?.trim()) {
+          callback(new Error('转让资源必须填写联系方式'))
+        } else {
+          callback()
+        }
+      },
+      trigger: 'blur'
+    }
+  ],
+  // 价格校验：允许为空或 0，若填写则必须为非负数
+  originalPrice: [
+    {
+      validator: (_rule: any, value: any, callback: Function) => {
+        if (value !== '' && value !== undefined && value !== null && Number(value) < 0) {
+          callback(new Error('原价不能为负数'))
+        } else {
+          callback()
+        }
+      },
+      trigger: 'blur'
+    }
+  ],
+  rentalPrice: [
+    {
+      validator: (_rule: any, value: any, callback: Function) => {
+        if (value !== '' && value !== undefined && value !== null && Number(value) < 0) {
+          callback(new Error('租赁价格不能为负数'))
+        } else {
+          callback()
+        }
+      },
+      trigger: 'blur'
+    }
+  ],
+  expectPrice: [
+    {
+      validator: (_rule: any, value: any, callback: Function) => {
+        if (value !== '' && value !== undefined && value !== null && Number(value) < 0) {
+          callback(new Error('期望价格不能为负数'))
+        } else {
+          callback()
+        }
+      },
+      trigger: 'blur'
+    }
   ]
 }
 
@@ -193,12 +247,13 @@ async function handleSubmit() {
 
     submitting.value = true
     try {
+      // 将字符串类型的数字输入转换为 Number，并把转让/借用模式下不需要的价格置为 0
       const submitData = {
         ...form,
         ownerId: userStore.userInfo.id,
-        originalPrice: form.originalPrice || 0,
-        rentalPrice: form.tradeMode !== 'transfer' ? (form.rentalPrice || 0) : 0,
-        expectPrice: form.tradeMode === 'transfer' ? (form.expectPrice || 0) : 0,
+        originalPrice: Number(form.originalPrice) || 0,
+        rentalPrice: form.tradeMode !== 'transfer' ? (Number(form.rentalPrice) || 0) : 0,
+        expectPrice: form.tradeMode === 'transfer' ? (Number(form.expectPrice) || 0) : 0,
         contactInfo: form.tradeMode === 'transfer' ? form.contactInfo : '',
         // 将图片数组转为逗号分隔字符串，适配数据库字段
         images: form.images && form.images.length > 0 ? form.images.join(',') : ''
@@ -224,8 +279,10 @@ async function handleSubmit() {
  */
 function handleReset() {
   formRef.value?.resetFields()
-  form.originalPrice = 0
-  form.rentalPrice = 0
+  // resetFields 会把价格字段恢复到 undefined，避免显示默认 0
+  form.originalPrice = undefined
+  form.rentalPrice = undefined
+  form.expectPrice = undefined
 }
 </script>
 

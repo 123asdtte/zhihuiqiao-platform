@@ -210,6 +210,22 @@ export function publishResource(data: Record<string, any>) {
 }
 
 /**
+ * 查询当前登录用户发布的资源列表（包含待审核等全部状态）
+ * @param params 查询参数
+ */
+export function getMyResources(params: {
+  pageNum?: number
+  pageSize?: number
+  status?: string
+}) {
+  return request({
+    url: '/api/resource/my-list',
+    method: 'get',
+    params
+  })
+}
+
+/**
  * 提交资源转让意向
  * @param data 意向信息
  */
