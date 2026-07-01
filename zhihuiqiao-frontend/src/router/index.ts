@@ -101,12 +101,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/resource/ResourcePublish.vue'),
         meta: { title: '发布闲置资源', roles: ['student', 'teacher', 'admin'] }
       },
-      {
-        path: 'resource/bookings',
-        name: 'MyBookings',
-        component: () => import('@/views/resource/MyBookings.vue'),
-        meta: { title: '我的预约', roles: ['student', 'teacher', 'admin'] }
-      },
+
       {
         path: 'resource/transfer-requests',
         name: 'MyTransferRequests',

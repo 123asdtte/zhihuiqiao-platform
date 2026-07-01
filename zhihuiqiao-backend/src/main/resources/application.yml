@@ -65,9 +65,16 @@ mybatis-plus:
       logic-not-delete-value: 0
 
 jwt:
-  # HS512 算法要求密钥长度至少为 512 位（64 字节），此处使用 64 个字符的字符串
-  secret: zhihuiqiao-secret-key-for-jwt-signing-and-verification-2024
+  # HS512 算法要求密钥长度至少为 512 位（64 字节），使用环境变量注入，切勿硬编码
+  secret: ${JWT_SECRET:zhihuiqiao-secret-key-for-jwt-signing-and-verification-2024}
   expiration: 86400000
+  # Token 刷新窗口：过期前 30 分钟内允许刷新（毫秒）
+  refresh-window: 1800000
+
+# CORS 跨域配置
+cors:
+  # 允许的来源，多个用逗号分隔；生产环境务必替换为实际域名
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
 
 logging:
   level:

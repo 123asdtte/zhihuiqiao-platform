@@ -49,9 +49,8 @@
               <span>资源流转</span>
             </template>
             <el-menu-item index="/app/resource/list">闲置资源</el-menu-item>
-            <el-menu-item index="/app/resource/bookings">我的预约</el-menu-item>
-            <el-menu-item index="/app/resource/transfer-requests">我的转让意向</el-menu-item>
             <el-menu-item index="/app/resource/my-resources">我的资源</el-menu-item>
+            <el-menu-item index="/app/resource/transfer-requests">我的转让意向</el-menu-item>
             <el-menu-item index="/app/resource/publish">发布资源</el-menu-item>
           </el-sub-menu>
 

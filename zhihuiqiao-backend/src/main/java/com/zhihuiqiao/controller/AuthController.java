@@ -64,9 +64,27 @@ public class AuthController {
         return Result.success(sysUserService.updateById(user));
     }
 
+    /**
+     * 刷新 Token
+     * 安全策略：
+     * 1. 验证 Token 签名是否有效
+     * 2. 检查 Token 是否在可刷新窗口内（过期前 30 分钟内）
+     * 3. 已过期超过刷新窗口的 Token 无法刷新，需重新登录
+     */
     @PostMapping("/refresh")
     public Result<LoginVO> refreshToken(@RequestHeader("Authorization") String authorization) {
         String token = authorization.replace("Bearer ", "");
+        
+        // 验证 Token 格式和签名
+        if (!jwtUtil.validateToken(token)) {
+            return Result.error("无效的 Token，请重新登录");
+        }
+        
+        // 检查 Token 是否在可刷新窗口内
+        if (!jwtUtil.isTokenRefreshable(token)) {
+            return Result.error("Token 已过期，请重新登录");
+        }
+        
         Long userId = jwtUtil.getUserIdFromToken(token);
         String username = jwtUtil.getUsernameFromToken(token);
         String roleType = jwtUtil.getRoleTypeFromToken(token);
